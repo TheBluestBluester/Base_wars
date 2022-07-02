@@ -1,0 +1,112 @@
+{
+  "name": "Base_wars",
+  "description": "Destroys bricks n stuff",
+  "author": "Bluester16",
+  "config": {
+    "UpdateFrequency": {
+      "description": "How fast the plugin checks for projectiles. Faster updates generate more logs. Slower updates makes the plugin less consistant.",
+      "default": 200,
+      "type": "number"
+    },
+    "DetectionRange": {
+      "description": "Range of the raycaster.",
+      "default": 1000,
+      "type": "number"
+    }
+  },
+  "commands": [
+    {
+      "name": "setspawn",
+      "description": "Sets your spawn location.",
+      "example": "/setspawn",
+      "args": [
+      ]
+    },
+    {
+      "name": "clearspawn",
+      "description": "Clears your spawn location.",
+      "example": "/clearspawn",
+      "args": [
+      ]
+    },
+    {
+      "name": "place",
+      "description": "Place a machine.",
+      "example": "/place manual printer",
+      "args": [
+        {
+          "name": "Machine name",
+          "description": "Machine to place.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "buy",
+      "description": "Buy a machine or a weapon.",
+      "example": "/buy weapon micro smg",
+      "args": [
+        {
+          "name": "Weapon/Machine",
+          "description": "What you want to buy.",
+          "required": true
+        },
+        {
+          "name": "Type",
+          "description": "Type of weapon/machine you want to buy.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "viewinv",
+      "description": "Views your inventory.",
+      "example": "/viewinv",
+      "args": [
+      ]
+    },
+    {
+      "name": "refund",
+      "description": "Removes the machine you are looking at. Refunded machines return 80% of their original cost.",
+      "example": "/refund",
+      "args": [
+      ]
+    },
+    {
+      "name": "basewars",
+      "description": "Info about Base wars.",
+      "example": "/basewars",
+      "args": [
+      ]
+    },
+    {
+      "name": "loadout",
+      "description": "Set your loadout.",
+      "example": "/loadout 1 micro smg",
+      "args": [
+        {
+          "name": "Slot",
+          "description": "Slot you want to change. ATM there are only 2 slots.",
+          "required": true
+        },
+        {
+          "name": "Weapon",
+          "description": "Weapon you want to set.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "listshop",
+      "description": "Lists weapons/machines.",
+      "example": "/listshop machines",
+      "args": [
+        {
+          "name": "weapons/machines",
+          "description": "Display machines or weapons.",
+          "required": true
+        }
+      ]
+    }
+  ]
+}
