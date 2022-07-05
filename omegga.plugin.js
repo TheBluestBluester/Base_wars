@@ -172,11 +172,10 @@ class Base_wars {
 	}
 	
 	async decrement(enabled) {
-		if(!enabled) {return;}
-		time--;
 		if(enablechecker) {
 			this.runmachines();
 		}
+		time--;
 		switch(time) {
 			case 3:
 				this.omegga.broadcast('<b>'+clr.ylw+'3</color> minutes remaining.</>');
@@ -416,8 +415,6 @@ class Base_wars {
 		}
 		this.initializemachines();
 		weapons = await weplist.list()
-		ProjectileCheckInterval = setInterval(() => this.CheckProjectiles(enablechecker),delay);
-		CountDownInterval = setInterval(() => this.decrement(true),60000);
 		
 		this.omegga.on('cmd:enable', async name => {
 			this.modetoggle(name);
@@ -853,6 +850,8 @@ class Base_wars {
 				this.omegga.whisper(name, 'Everyone\'s progress has been wiped.')
 			}
 		});
+		ProjectileCheckInterval = setInterval(() => this.CheckProjectiles(enablechecker),delay);
+		CountDownInterval = setInterval(() => this.decrement(true),60000);
 		return { registeredCommands: ['wipeall','loadout','viewinv','setspawn','clearspawn','place','buy','listshop','basewars','refund'] };
 	}
 	async pluginEvent(event, from, ...args) {
