@@ -125,6 +125,9 @@ class Base_wars {
 	
 	async runmachines() {
 		let usedgenerators = [];
+		if(machinesbrs.length === 0) {
+			return;
+		}
 		for(var mcn in machinesbrs) {
 			const mcnb = machinesbrs[mcn];
 			const data = mcnb.components.BCD_Interact.ConsoleTag.split(' ');
@@ -158,6 +161,9 @@ class Base_wars {
 			}
 		}
 		let machinestoreload = moneybrs;
+		if(machinestoreload.length === 0) {
+			return;
+		}
 		machinestoreload.bricks = machinesbrs;
 		this.omegga.loadSaveData(machinestoreload,{quiet: true});
 		
@@ -516,7 +522,7 @@ class Base_wars {
 			if(checklegitimacy.length === 0) { return; }
 			const argsarray = data.message.split(' ');
 			if(argsarray[4] === data.player.name && !mcntimeout.includes(data.position.join(' '))) {
-				if(argsarray[0] === 'Printer' && argsarray[1] === 'Manual') {
+				if(argsarray[0] === 'Printer' && argsarray[1] === 'Manual' && enablechecker) {
 					let pdata = await this.store.get(data.player.id);
 					pdata.money += 1;
 					this.store.set(data.player.id,pdata);
@@ -525,7 +531,7 @@ class Base_wars {
 				}
 			}
 			else if(mcntimeout.includes(data.position.join(' '))) {
-				this.omegga.middlePrint(data.player.name,clr.red+'<b>You need to wait 15 seconds before using this machine again.</>');
+				this.omegga.middlePrint(data.player.name,clr.red+'<b>You need to wait 5 seconds before using this machine again.</>');
 			}
 		})
 		.on('cmd:refund', async name => {
@@ -638,7 +644,7 @@ class Base_wars {
 							this.store.set(player.id,invn);
 						}
 						else {
-							this.omegga.whisper(name, clr.red + '<b>You don\'t have enouph money to buy that weapon.</>');
+							this.omegga.whisper(name, clr.red + '<b>You don\'t have enough money to buy that weapon.</>');
 						}
 					}
 					else {
@@ -660,9 +666,10 @@ class Base_wars {
 					const player = await this.omegga.getPlayer(name);
 					let invn = await this.store.get(player.id);
 					if(invn.money < data[3]) {
-						this.omegga.whisper(name, clr.red + '<b>You don\'t have enouph money to buy that machine.</>');
+						this.omegga.whisper(name, clr.red + '<b>You don\'t have enough money to buy that machine.</>');
 						return;
 					}
+					invn.money -= Number(data[3]);
 					invn.machines.push(machine);
 					this.store.set(player.id,invn);
 					this.omegga.whisper(name, '<b>You have bought: ' + clr.ylw + machine + '</color>.</>');
@@ -787,6 +794,7 @@ class Base_wars {
 					this.omegga.whisper(name, '<b>Each couple of minutes the modes get switched to fight mode and build mode.</>');
 					this.omegga.whisper(name, '<b>Your goal is to build and defend machines which generate money. You can destroy other people\'s machines for money. With money you can buy more machines and better weapons to kill and destroy.</>');
 					this.omegga.whisper(name, '<b>During build mode you can build... Obviously... During fight mode you can destroy each other\'s bases. Bases can ONLY be destroyed with explosives.</>');
+					this.omegga.whisper(name, '<b>To begin making money place down a manual printer with /place manual printer . Machines only get checked everytime fight mode begins so if you place down any machines during fight mode they wont be detected.</>');
 					break;
 				case 'commands':
 					this.omegga.whisper(name, '<size="30"><b>Commands.</>');
