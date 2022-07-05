@@ -128,11 +128,13 @@ class Base_wars {
 		if(machinesbrs.length === 0) {
 			return;
 		}
+		console.log('test');
 		for(var mcn in machinesbrs) {
 			const mcnb = machinesbrs[mcn];
 			const data = mcnb.components.BCD_Interact.ConsoleTag.split(' ');
 			const pname = data.splice(6,data.length - 6).join(' ');
 			if(data[0] === 'Printer' && data[1] === 'Auto') {
+				console.log('test2');
 				const bpos = mcnb.position;
 				const generators = machinesbrs.filter(mcn => mcn.components.BCD_Interact.ConsoleTag.split(' ')[0] === 'Gen' && Math.sqrt(
 				(bpos[0] - mcn.position[0]) * (bpos[0] - mcn.position[0]) +
@@ -148,6 +150,7 @@ class Base_wars {
 						usedgenerators.push(generators[gen].position);
 					}
 				}
+				console.log(energy, data[5]);
 				if(energy >= data[5]) {
 					const player = await this.omegga.getPlayer(pname);
 					if(!online.includes(pname)) {
@@ -155,6 +158,7 @@ class Base_wars {
 					}
 					let invn = await this.store.get(player.id);
 					invn.money += Number(data[4]);
+					console.log(data[4]);
 					this.store.set(player.id,invn);
 					//this.omegga.whisper(pname,'You machine generated money.')
 				}
@@ -416,7 +420,7 @@ class Base_wars {
 		weapons = await weplist.list()
 		ProjectileCheckInterval = setInterval(() => this.CheckProjectiles(enablechecker),delay);
 		CountDownInterval = setInterval(() => this.decrement(true),60000);
-		/*
+		
 		this.omegga.on('cmd:enable', async name => {
 			this.modetoggle(name);
 		})
@@ -424,7 +428,7 @@ class Base_wars {
 		.on('cmd:test', async player => {
 			this.runmachines();
 		})
-		*/
+		/**/
 		this.omegga.on('cmd:place', async (name, ...args) => {
 			const mcntoplace = args.join(' ');
 			let machinert = machines.filter(mcn => mcn.name === mcntoplace);
