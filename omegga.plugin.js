@@ -134,7 +134,7 @@ class Base_wars {
 			const pname = data.splice(6,data.length - 6).join(' ');
 			if(data[0] === 'Printer' && data[1] === 'Auto') {
 				const bpos = mcnb.position;
-				console.log(bpos);
+				//console.log(bpos);
 				const generators = machinesbrs.filter(gmcn => gmcn.components.BCD_Interact.ConsoleTag.split(' ')[0] === 'Gen' && Math.sqrt(
 				(bpos[0] - gmcn.position[0]) * (bpos[0] - gmcn.position[0]) +
 				(bpos[1] - gmcn.position[1]) * (bpos[1] - gmcn.position[1]) +
@@ -414,7 +414,7 @@ class Base_wars {
 		}
 		this.initializemachines();
 		weapons = await weplist.list()
-		
+		/*
 		this.omegga.on('cmd:enable', async name => {
 			this.modetoggle(name);
 		})
@@ -422,7 +422,7 @@ class Base_wars {
 		.on('cmd:test', async player => {
 			this.runmachines();
 		})
-		/**/
+		*/
 		this.omegga.on('cmd:place', async (name, ...args) => {
 			const mcntoplace = args.join(' ');
 			let machinert = machines.filter(mcn => mcn.name === mcntoplace);
