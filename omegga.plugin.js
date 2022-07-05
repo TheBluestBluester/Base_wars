@@ -128,13 +128,13 @@ class Base_wars {
 		if(machinesbrs.length === 0) {
 			return;
 		}
-		console.log('test');
+		//console.log('test');
 		for(var mcn in machinesbrs) {
 			const mcnb = machinesbrs[mcn];
 			const data = mcnb.components.BCD_Interact.ConsoleTag.split(' ');
 			const pname = data.splice(6,data.length - 6).join(' ');
 			if(data[0] === 'Printer' && data[1] === 'Auto') {
-				console.log('test2');
+				//console.log('test2');
 				const bpos = mcnb.position;
 				const generators = machinesbrs.filter(mcn => mcn.components.BCD_Interact.ConsoleTag.split(' ')[0] === 'Gen' && Math.sqrt(
 				(bpos[0] - mcn.position[0]) * (bpos[0] - mcn.position[0]) +
@@ -150,17 +150,16 @@ class Base_wars {
 						usedgenerators.push(generators[gen].position);
 					}
 				}
-				console.log(energy, data[5]);
+				//console.log(energy, data[5]);
 				if(energy >= data[5]) {
 					const player = await this.omegga.getPlayer(pname);
-					if(!online.includes(pname)) {
-						return;
+					if(online.includes(pname)) {
+						let invn = await this.store.get(player.id);
+						invn.money += Number(data[4]);
+						//console.log(data[4]);
+						this.store.set(player.id,invn);
+						//this.omegga.whisper(pname,'You machine generated money.')
 					}
-					let invn = await this.store.get(player.id);
-					invn.money += Number(data[4]);
-					console.log(data[4]);
-					this.store.set(player.id,invn);
-					//this.omegga.whisper(pname,'You machine generated money.')
 				}
 			}
 		}
@@ -420,7 +419,7 @@ class Base_wars {
 		weapons = await weplist.list()
 		ProjectileCheckInterval = setInterval(() => this.CheckProjectiles(enablechecker),delay);
 		CountDownInterval = setInterval(() => this.decrement(true),60000);
-		
+		/*
 		this.omegga.on('cmd:enable', async name => {
 			this.modetoggle(name);
 		})
@@ -428,7 +427,7 @@ class Base_wars {
 		.on('cmd:test', async player => {
 			this.runmachines();
 		})
-		/**/
+		*/
 		this.omegga.on('cmd:place', async (name, ...args) => {
 			const mcntoplace = args.join(' ');
 			let machinert = machines.filter(mcn => mcn.name === mcntoplace);
@@ -525,16 +524,16 @@ class Base_wars {
 			const checklegitimacy = machinesbrs.filter(brick => brick.position.join(' ') === data.position.join(' '));
 			if(checklegitimacy.length === 0) { return; }
 			const argsarray = data.message.split(' ');
-			if(argsarray[4] === data.player.name && !mcntimeout.includes(data.position.join(' '))) {
+			if(argsarray[4] === data.player.name && !mcntimeout.includes(data.player.id)) {
 				if(argsarray[0] === 'Printer' && argsarray[1] === 'Manual' && enablechecker) {
 					let pdata = await this.store.get(data.player.id);
 					pdata.money += 1;
 					this.store.set(data.player.id,pdata);
-					mcntimeout.push(data.position.join(' '));
-					setTimeout(() => mcntimeout.splice(mcntimeout.indexOf(data.position.join(' ')),1), 5000);
+					mcntimeout.push(data.player.id);
+					setTimeout(() => mcntimeout.splice(mcntimeout.indexOf(data.player.id),1), 5000);
 				}
 			}
-			else if(mcntimeout.includes(data.position.join(' '))) {
+			else if(mcntimeout.includes(data.player.id)) {
 				this.omegga.middlePrint(data.player.name,clr.red+'<b>You need to wait 5 seconds before using this machine again.</>');
 			}
 		})
