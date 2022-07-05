@@ -852,7 +852,7 @@ class Base_wars {
 		});
 		ProjectileCheckInterval = setInterval(() => this.CheckProjectiles(enablechecker),delay);
 		CountDownInterval = setInterval(() => this.decrement(true),60000);
-		return { registeredCommands: ['wipeall','loadout','viewinv','setspawn','clearspawn','place','buy','listshop','basewars','refund'] };
+		return { registeredCommands: ['wipeall','loadout','viewinv','setspawn','clearspawn','place','buy','listshop','basewars','refund','enable','test'] };
 	}
 	async pluginEvent(event, from, ...args) {
 		if(event === 'spawn') {
