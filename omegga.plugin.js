@@ -17,7 +17,7 @@ end: "</>"
 let shoplist = [
 	{weapon: 'micro smg', price: 20},
 	{weapon: 'heavy smg', price: 60},
-	{weapon: 'impact grenade launcher', price: 120},
+	{weapon: 'impact grenade launcher', price: 100},
 	{weapon: 'suppressed bullpup smg', price: 300},
 	{weapon: 'shotgun', price: 440},
 	{weapon: 'assault rifle', price: 600},
