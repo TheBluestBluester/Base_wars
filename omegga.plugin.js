@@ -15,20 +15,20 @@ cyn: "<color=\"33ddff\">",
 end: "</>"
 }
 let shoplist = [
-	{weapon: 'micro smg', price: 15},
-	{weapon: 'heavy smg', price: 40},
-	{weapon: 'impact grenade launcher', price: 80},
-	{weapon: 'suppressed bullpup smg', price: 150},
-	{weapon: 'shotgun', price: 220},
-	{weapon: 'assault rifle', price: 300},
-	{weapon: 'sniper', price: 450},
-	{weapon: 'classic assault rifle', price: 550},
-	{weapon: 'tactical shotgun', price: 600},
-	{weapon: 'barrage launcher', price: 800},
-	{weapon: 'suppressed service rifle', price: 1050},
-	{weapon: 'bazooka', price: 1300},
-	{weapon: 'rocket launcher', price: 1600},
-	{weapon: 'twin cannon', price: 2300}
+	{weapon: 'micro smg', price: 20},
+	{weapon: 'heavy smg', price: 60},
+	{weapon: 'impact grenade launcher', price: 120},
+	{weapon: 'suppressed bullpup smg', price: 300},
+	{weapon: 'shotgun', price: 440},
+	{weapon: 'assault rifle', price: 600},
+	{weapon: 'sniper', price: 840},
+	{weapon: 'classic assault rifle', price: 1100},
+	{weapon: 'tactical shotgun', price: 1200},
+	{weapon: 'barrage launcher', price: 1600},
+	{weapon: 'suppressed service rifle', price: 2100},
+	{weapon: 'bazooka', price: 3000},
+	{weapon: 'rocket launcher', price: 3800},
+	{weapon: 'twin cannon', price: 4600}
 ];
 
 const moneyfile = fs.readFileSync(__dirname + "/Money.brs");
@@ -303,7 +303,9 @@ class Base_wars {
 					if(mmcnd.includes('Manual')) {
 						pname = mmcnd.splice(4,mmcnd.length - 4).join(' ');
 					}
-					this.omegga.whisper(pname, clr.red + '<b>One of your machines has been destroyed!</>');
+					if(online.includes(pname)) {
+						this.omegga.whisper(pname, clr.red + '<b>One of your machines has been destroyed!</>');
+					}
 					machinesbrs.splice(mcn,1);
 					}
 				}
