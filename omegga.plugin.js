@@ -224,7 +224,7 @@ class Base_wars {
 				projdamage = 8
 				break;
 			case 'TwinCannon':
-				projradius = 30;
+				projradius = 10;
 				projdamage = 16;
 				break;
 		}
