@@ -502,6 +502,7 @@ class Base_wars {
 				this.omegga.loadSaveData(mcnbrs,{offX: ppos[0], offY: ppos[1], offZ: ppos[2] - 25, quiet: true});
 				invn.machines.splice(invn.machines.indexOf(mcntoplace),1);
 				this.store.set(player.id,invn);
+				machinesbrs.push(mcnbrs.bricks[0]);
 				this.omegga.whisper(name,'<b>Succesfully placed ' + clr.ylw + machinert.name + '</color>.</>');
 			}
 		})
