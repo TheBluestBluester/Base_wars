@@ -144,7 +144,7 @@ class Base_wars {
 				for(var gen in generators) {
 					const gdata = generators[gen].components.BCD_Interact.ConsoleTag.split(' ');
 					const gpname = gdata.splice(5,data.length - 5).join(' ');
-					if(pname === gpname) {
+					if(pname === gpname && energy < Number(data[5])) {
 						energy += Number(gdata[4]);
 						usedgenerators.push(generators[gen].position);
 					}
