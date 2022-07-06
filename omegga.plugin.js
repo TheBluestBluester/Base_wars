@@ -425,6 +425,10 @@ class Base_wars {
 			this.runmachines();
 		})
 		*/
+		this.omegga.on('cmd:test2', async player => {
+			this.omegga.whisper(player,online.join(' '));
+		});
+		
 		this.omegga.on('cmd:place', async (name, ...args) => {
 			const mcntoplace = args.join(' ');
 			let machinert = machines.filter(mcn => mcn.name === mcntoplace);
@@ -681,7 +685,9 @@ class Base_wars {
 			}
 		})
 		.on('leave', async player => {
-			online.splice(online.indexOf(player.name),1);
+			if(online.indexOf(player.name) > -1){
+				online.splice(online.indexOf(player.name),1);
+			}
 		})
 		.on('join', async player => {
 			const keys = await this.store.keys();
@@ -854,7 +860,7 @@ class Base_wars {
 		});
 		ProjectileCheckInterval = setInterval(() => this.CheckProjectiles(enablechecker),delay);
 		CountDownInterval = setInterval(() => this.decrement(true),60000);
-		return { registeredCommands: ['wipeall','loadout','viewinv','setspawn','clearspawn','place','buy','listshop','basewars','refund'] };
+		return { registeredCommands: ['wipeall','loadout','viewinv','setspawn','clearspawn','place','buy','listshop','basewars','refund','test2'] };
 	}
 	async pluginEvent(event, from, ...args) {
 		if(event === 'spawn') {
