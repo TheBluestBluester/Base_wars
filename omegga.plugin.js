@@ -35,6 +35,7 @@ const moneyfile = fs.readFileSync(__dirname + "/Money.brs");
 const moneybrs = brs.read(moneyfile);
 
 let online = [];
+let todie = [];
 
 let weapons;
 let delay = 200;
@@ -213,7 +214,7 @@ class Base_wars {
 				break;
 			case 'RocketLauncher':
 				projradius = 80;
-				projdamage = 20;
+				projdamage = 30;
 				break;
 			case 'QuadLauncher':
 				projradius = 30;
@@ -286,7 +287,7 @@ class Base_wars {
 					}
 					else {
 					if(mmcnd[3] > 0) {
-						moneybrick.components.BCD_Interact.ConsoleTag = 'Money ' + Math.floor(Number(mmcnd[3]) * 0.6);
+						moneybrick.components.BCD_Interact.ConsoleTag = 'Money ' + Math.floor(Number(mmcnd[3]) * 0.8);
 						const toplace =  {...moneybrs, bricks: [moneybrick], brick_owners : [{
 						id: '00000000-0000-0000-0000-000000000080',
 						name: 'Money',
@@ -424,11 +425,14 @@ class Base_wars {
 		.on('cmd:test', async player => {
 			this.runmachines();
 		})
-		*/
-		this.omegga.on('cmd:test2', async player => {
-			this.omegga.whisper(player,online.join(' '));
-		});
 		
+		this.omegga.on('cmd:test2', async name => {
+			const player = await this.omegga.getPlayer(name);
+			let invn = await this.store.get(player.id);
+			invn.money += 9000;
+			this.store.set(player.id, invn);
+		});
+		*/
 		this.omegga.on('cmd:place', async (name, ...args) => {
 			const mcntoplace = args.join(' ');
 			let machinert = machines.filter(mcn => mcn.name === mcntoplace);
@@ -510,6 +514,33 @@ class Base_wars {
 				this.omegga.whisper(name,'<b>Succesfully placed ' + clr.ylw + machinert.name + '</color>.</>');
 			}
 		})
+		.on('cmd:pay', async (name, ...args) => {
+			const money = Number(args[0]);
+			args.splice(0,1);
+			const player = args.join(' ');
+			if(!online.includes(player)) {
+				this.omegga.whisper(name, clr.red + '<b>That player either doesn\'t exist or they are not online.</>');
+				return;
+			}
+			if(money < 0) {
+				this.omegga.whisper(name, clr.red + '<b>Negative money doesn\'t exist.</>');
+				return;
+			}
+			const pid1 = await this.omegga.getPlayer(name);
+			let invn = await this.store.get(pid1.id);
+			if(invn.money < money) {
+				this.omegga.whisper(name, clr.red + '<b>You don\'t have enouph money to pay ' + clr.ylw + '$' + clr.dgrn + money + clr.red + '.</>');
+				return;
+			}
+			invn.money -= money;
+			this.store.set(pid1.id, invn);
+			const pid2 = await this.omegga.getPlayer(player);
+			let reciver = await this.store.get(pid2.id);
+			reciver.money += money;
+			this.store.set(pid2.id, reciver);
+			this.omegga.whisper(name, '<b>You have paid ' + clr.ylw + '$' + clr.dgrn + money + '</></><b> to ' + clr.ylw + player + '</><b>.</>');
+			this.omegga.whisper(player, '<b>You have recived ' + clr.ylw + '$' + clr.dgrn + money + '</></><b> from ' + clr.ylw + name + '</><b>.</>');
+		})
 		.on('interact', async data => {
 			if(data.message.indexOf('Money') === 0) {
 				const argsarray = data.message.split(' ');
@@ -529,7 +560,7 @@ class Base_wars {
 			if(argsarray[4] === data.player.name && !mcntimeout.includes(data.player.id)) {
 				if(argsarray[0] === 'Printer' && argsarray[1] === 'Manual' && enablechecker) {
 					let pdata = await this.store.get(data.player.id);
-					pdata.money += 1;
+					pdata.money += 2;
 					this.store.set(data.player.id,pdata);
 					mcntimeout.push(data.player.id);
 					setTimeout(() => mcntimeout.splice(mcntimeout.indexOf(data.player.id),1), 5000);
@@ -538,6 +569,16 @@ class Base_wars {
 			else if(mcntimeout.includes(data.player.id)) {
 				this.omegga.middlePrint(data.player.name,clr.red+'<b>You need to wait 5 seconds before using this machine again.</>');
 			}
+		})
+		.on('cmd:changelog', async name => {
+			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
+			this.omegga.whisper(name, clr.orn + "<b>Added a changelog.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Added a /pay command.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Weapons over 2000 will be lost on death.</>");
+			this.omegga.whisper(name, clr.orn + "<b>/loadout now changes your inventory during fight mode so you don't have to die to switch weapons.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Manual printer now generates " + clr.ylw + "$" + clr.dgrn + "2" + clr.orn + ".</>");
+			this.omegga.whisper(name, clr.orn + "<b>Machines placed after this update will make noise.</>");
+			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
 		.on('cmd:refund', async name => {
 			const player = await this.omegga.getPlayer(name);
@@ -619,7 +660,7 @@ class Base_wars {
 						moneybrick.position = [Math.floor(Number(pos.x)),Math.floor(Number(pos.y)),Math.floor(Number(pos.z))];
 						const mmcnd = moneymcn.components.BCD_Interact.ConsoleTag.split(' ');
 						if(mmcnd[3] > 0) {
-							invn.money += Math.floor(Number(mmcnd[3]) * 0.8);
+							invn.money += Math.floor(Number(mmcnd[3]) * 0.7);
 							this.store.set(player.id,invn);
 						}
 						
@@ -769,15 +810,28 @@ class Base_wars {
 			if(haskey.includes(player.id)) {
 				const slot = args[0];
 				if(slot > 2) {
-					this.omegga.whisper(name,'You have only 2 slots');
+					this.omegga.whisper(name,clr.red + '<b>You have only 2 slots.</>');
+					return;
+				}
+				if(slot < 1) {
+					this.omegga.whisper(name,clr.red + '<b>There is no zero or negative slots.</>');
 					return;
 				}
 				args.splice(0,1);
 				const weapon = args.join(' ');
 				let inv = await this.store.get(player.id);
 				if(inv.inv.includes(weapon)) {
+					this.omegga.getPlayer(player.id).takeItem(weapons[inv.selected[0]]);
+					this.omegga.getPlayer(player.id).takeItem(weapons[inv.selected[1]]);
 					inv.selected[slot - 1] = weapon;
+					if(enablechecker) {
+						this.omegga.getPlayer(player.id).giveItem(weapons[inv.selected[0]]);
+						this.omegga.getPlayer(player.id).giveItem(weapons[inv.selected[1]]);
+					}
 					this.store.set(player.id,inv);
+					if(todie.includes(name) && !inv.selected.includes(weapon)) {
+						todie.splice(todie.indexOf(name), 1);
+					}
 					this.omegga.whisper(name,'<b>Slot '+clr.ylw+slot+'</color> has been set to '+clr.orn+weapon+'</color>.</>');
 				}
 				else {
@@ -860,7 +914,7 @@ class Base_wars {
 		});
 		ProjectileCheckInterval = setInterval(() => this.CheckProjectiles(enablechecker),delay);
 		CountDownInterval = setInterval(() => this.decrement(true),60000);
-		return { registeredCommands: ['wipeall','loadout','viewinv','setspawn','clearspawn','place','buy','listshop','basewars','refund','test2'] };
+		return { registeredCommands: ['wipeall','loadout','viewinv','setspawn','clearspawn','place','buy','listshop','basewars','refund','pay','changelog'] };
 	}
 	async pluginEvent(event, from, ...args) {
 		if(event === 'spawn') {
@@ -873,6 +927,27 @@ class Base_wars {
 			if(enablechecker) {
 				this.omegga.getPlayer(player.id).giveItem(weapons[invn.selected[0]]);
 				this.omegga.getPlayer(player.id).giveItem(weapons[invn.selected[1]]);
+			}
+		}
+		if(event === 'death') {
+			if(!enablechecker) {
+				return;
+			}
+			const player = args[0].player;
+			//if(!todie.includes(player.name)) {
+				//todie.push(player.name);
+				//return;
+			//}
+			const invn = await this.store.get(player.id);
+			for(var invwep in invn.selected) {
+				const weps = shoplist.filter(wep => wep.weapon === invn.selected[invwep] && wep.price > 2000);
+				if(weps.length > 0) {
+					const deletewep = weps[0]
+					invn.selected[invn.selected.indexOf(deletewep.weapon)] = 'pistol';
+					invn.inv.splice(invn.inv.indexOf(deletewep.weapon), 1);
+					this.store.set(player.id, invn);
+					this.omegga.whisper(player.name, clr.red + "<b>You have lost your " + deletewep.weapon + ".</>");
+				}
 			}
 		}
 	}
