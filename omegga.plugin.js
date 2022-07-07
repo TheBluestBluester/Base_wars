@@ -868,6 +868,7 @@ class Base_wars {
 					this.omegga.whisper(name, '<b>' + clr.grn + '/clearspawn</color> clears your base spawn.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/place (machine name)</color> place down a machine.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/refund </color>removes a machine that you are looking at. Refunded machines return 80% of their original price.</>');
+					this.omegga.whisper(name, '<b>' + clr.grn + '/pay (money) (player)</color> gives a player money.</>');
 					break;
 				case 'machines':
 					this.omegga.whisper(name, '<size="30"><b>Machines.</>');
