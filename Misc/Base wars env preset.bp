@@ -1,0 +1,106 @@
+{
+	"formatVersion": "1",
+	"presetVersion": "1",
+	"type": "Environment",
+	"data":
+	{
+		"groups":
+		{
+			"Sky":
+			{
+				"timeOfDay": 7.9499998092651367,
+				"timeChangeSpeed": 0,
+				"sunAngle": 300,
+				"sunScale": 0.85000002384185791,
+				"sunHorizonScaleMultiplier": 1,
+				"sunlightColor":
+				{
+					"r": 1,
+					"g": 0.80695199966430664,
+					"b": 0.76815098524093628,
+					"a": 1
+				},
+				"skyIntensity": 1,
+				"skyColor":
+				{
+					"r": 0,
+					"g": 0.17144100368022919,
+					"b": 1,
+					"a": 1
+				},
+				"moonScale": 0.69999998807907104,
+				"moonlightIntensity": 1,
+				"moonlightColor":
+				{
+					"r": 0.51764702796936035,
+					"g": 0.60000002384185791,
+					"b": 0.86666697263717651,
+					"a": 1
+				},
+				"starsIntensity": 1,
+				"starsColor":
+				{
+					"r": 0.74901998043060303,
+					"g": 0.85097998380661011,
+					"b": 1,
+					"a": 1
+				},
+				"auroraIntensity": 0,
+				"weatherIntensity": 0.72999995946884155,
+				"rainSnow": 1,
+				"cloudCoverage": 0.50999999046325684,
+				"cloudSpeedMultiplier": 0.66999995708465576,
+				"precipitationParticleAmount": 1.6799999475479126,
+				"bCloseLightning": true,
+				"rainVolume": 0.64999997615814209,
+				"closeThunderVolume": 1,
+				"distantThunderVolume": 0.40000000596046448,
+				"windVolume": 0.64999997615814209,
+				"clearFogDensity": 0.070000000298023224,
+				"cloudyFogDensity": 0.17999999225139618,
+				"clearFogHeightFalloff": 0.090000003576278687,
+				"cloudyFogHeightFalloff": 0.039999999105930328,
+				"fogColor":
+				{
+					"r": 0.50288599729537964,
+					"g": 0.67954200506210327,
+					"b": 1,
+					"a": 1
+				}
+			},
+			"Water":
+			{
+				"waterHeight": 0,
+				"waterAbsorption":
+				{
+					"x": 0.0065000001341104507,
+					"y": 0.0010000000474974513,
+					"z": 0.0010000000474974513
+				},
+				"waterScattering":
+				{
+					"x": 7.0000000960135367e-06,
+					"y": 1.8000000636675395e-05,
+					"z": 3.0999999580672011e-05
+				},
+				"waterFogIntensity": 0.00019999999494757503,
+				"waterFogAmbientColor":
+				{
+					"r": 0.10000000149011612,
+					"g": 0.40952399373054504,
+					"b": 0.75,
+					"a": 1
+				},
+				"waterFogAmbientScale": 0.25,
+				"waterFogScatteringColor":
+				{
+					"r": 0.5,
+					"g": 1,
+					"b": 0.75,
+					"a": 1
+				},
+				"waterFogScatteringScale": 3
+			}
+		}
+	}
+}
