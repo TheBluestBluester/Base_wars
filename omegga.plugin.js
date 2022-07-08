@@ -212,7 +212,7 @@ class Base_wars {
 				break;
 			case 'ImpactGrenadeLauncher':
 				projradius = 20;
-				projdamage = 8;
+				projdamage = 10;
 				break;
 			case 'RocketLauncher':
 				projradius = 80;
@@ -244,13 +244,14 @@ class Base_wars {
 			if(size[0] === 0) {
 				size = specials[brs.brick_assets[brick.asset_name_index]];
 			}
-			const directions = [[2,1,0],[0,2,1],[0,1,2]];
-			const brdr = Math.floor(brick.direction/2);
-			size = [size[directions[brdr][0]],size[directions[brdr][1]],size[directions[brdr][2]]];
 			if(brick.rotation%2 == 1) {
 				size = [size[1],size[0],size[2]];
 			}
+			const directions = [[2,1,0],[0,2,1],[0,1,2]];
+			const brdr = Math.floor(brick.direction/2);
+			size = [size[directions[brdr][0]],size[directions[brdr][1]],size[directions[brdr][2]]];
 			brick.size = size;
+			console.log(brick);
 			const bpos = brick.position;
 			const BP1 = {
 			x: bpos[0] - size[0],
@@ -426,20 +427,20 @@ class Base_wars {
 		this.initializemachines();
 		weapons = await weplist.list()
 		specials = await speciallist.list();
-		
+		/*
 		this.omegga.on('cmd:enable', async name => {
 			this.modetoggle(name);
 		})
-		/*
+		
 		.on('cmd:test', async player => {
 			this.runmachines();
 		})
-		*/
+		
 		this.omegga.on('cmd:test2', async name => {
 			const brs = await this.omegga.getSaveData();
 			console.log(brs.bricks);
 		});
-		
+		*/
 		this.omegga.on('cmd:place', async (name, ...args) => {
 			const mcntoplace = args.join(' ');
 			let machinert = machines.filter(mcn => mcn.name === mcntoplace);
@@ -499,6 +500,9 @@ class Base_wars {
 					if(rotation%2 == 1) {
 						size = [size[1],size[0],size[2]];
 					}
+					const directions = [[2,1,0],[0,2,1],[0,1,2]];
+					const brdr = Math.floor(brick.direction/2);
+					size = [size[directions[brdr][0]],size[directions[brdr][1]],size[directions[brdr][2]]];
 					nearbybricks.bricks[b] = {...brick, size: size};
 				}
 				const colliding = nearbybricks.bricks.filter(
@@ -579,12 +583,10 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Added a changelog.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Added a /pay command.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Weapons over 2000 will be lost on death.</>");
-			this.omegga.whisper(name, clr.orn + "<b>/loadout now changes your inventory during fight mode so you don't have to die to switch weapons.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Manual printer now generates " + clr.ylw + "$" + clr.dgrn + "2" + clr.orn + ".</>");
-			this.omegga.whisper(name, clr.orn + "<b>Machines placed after this update will make noise.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Buffed impact grenade launcher.</>");
+			this.omegga.whisper(name, clr.orn + "<b>By default slot 3 was set to be a rocket jumper.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Raycast now calculates the direction of bricks.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Special bricks are nolonger indestructable.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
 		.on('cmd:refund', async name => {
@@ -740,7 +742,7 @@ class Base_wars {
 		.on('join', async player => {
 			const keys = await this.store.keys();
 			if(!keys.includes(player.id)) {
-				this.store.set(player.id,{inv: ['pistol','impact grenade','rocket jumper'], money: 0, base: [], selected: ['pistol','impact grenade'], machines: [], charm: ''});
+				this.store.set(player.id,{inv: ['pistol','impact grenade'], money: 0, base: [], selected: ['pistol','impact grenade'], machines: [], charm: ''});
 				this.omegga.whisper(player.name,clr.grn+'<b>You\'re new so you recieved basic guns. Please use /basewars for basic info.</>')
 			}
 			const invn = await this.store.get(player.id);
@@ -830,10 +832,12 @@ class Base_wars {
 				if(inv.inv.includes(weapon)) {
 					this.omegga.getPlayer(player.id).takeItem(weapons[inv.selected[0]]);
 					this.omegga.getPlayer(player.id).takeItem(weapons[inv.selected[1]]);
+					this.omegga.getPlayer(player.id).takeItem(weapons['rocket jumper']);
 					inv.selected[slot - 1] = weapon;
 					if(enablechecker) {
 						this.omegga.getPlayer(player.id).giveItem(weapons[inv.selected[0]]);
 						this.omegga.getPlayer(player.id).giveItem(weapons[inv.selected[1]]);
+						this.omegga.getPlayer(player.id).giveItem(weapons['rocket jumper']);
 					}
 					this.store.set(player.id,inv);
 					if(todie.includes(name) && !inv.selected.includes(weapon)) {
@@ -935,6 +939,7 @@ class Base_wars {
 			if(enablechecker) {
 				this.omegga.getPlayer(player.id).giveItem(weapons[invn.selected[0]]);
 				this.omegga.getPlayer(player.id).giveItem(weapons[invn.selected[1]]);
+				this.omegga.getPlayer(player.id).giveItem(weapons['rocket jumper']);
 			}
 		}
 		if(event === 'death') {
