@@ -18,16 +18,16 @@ end: "</>"
 let shoplist = [
 	{weapon: 'micro smg', price: 20},
 	{weapon: 'heavy smg', price: 60},
-	{weapon: 'impact grenade launcher', price: 100},
+	{weapon: 'barrage launcher', price: 100},
 	{weapon: 'suppressed bullpup smg', price: 300},
-	{weapon: 'shotgun', price: 440},
+	{weapon: 'auto shotgun', price: 440},
 	{weapon: 'assault rifle', price: 600},
 	{weapon: 'sniper', price: 840},
-	{weapon: 'classic assault rifle', price: 1100},
-	{weapon: 'tactical shotgun', price: 1200},
-	{weapon: 'barrage launcher', price: 1600},
-	{weapon: 'suppressed service rifle', price: 2100},
-	{weapon: 'bazooka', price: 3000},
+	{weapon: 'service rifle', price: 1100},
+	{weapon: 'slug shotgun', price: 1200},
+	{weapon: 'impact grenade launcher', price: 1600},
+	{weapon: 'classic assault rifle', price: 2100},
+	{weapon: 'bazooka', price: 2800},
 	{weapon: 'rocket launcher', price: 3800},
 	{weapon: 'twin cannon', price: 4600}
 ];
@@ -211,8 +211,8 @@ class Base_wars {
 				projdamage = 10;
 				break;
 			case 'ImpactGrenadeLauncher':
-				projradius = 20;
-				projdamage = 10;
+				projradius = 15;
+				projdamage = 8;
 				break;
 			case 'RocketLauncher':
 				projradius = 80;
@@ -587,6 +587,7 @@ class Base_wars {
 			this.omegga.whisper(name, clr.orn + "<b>By default slot 3 was set to be a rocket jumper.</>");
 			this.omegga.whisper(name, clr.orn + "<b>Raycast now calculates the direction of bricks.</>");
 			this.omegga.whisper(name, clr.orn + "<b>Special bricks are nolonger indestructable.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Updated the shop.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
 		.on('cmd:refund', async name => {
