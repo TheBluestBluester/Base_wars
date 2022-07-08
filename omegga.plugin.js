@@ -1,6 +1,7 @@
 const { brs } = OMEGGA_UTIL;
 const raycasttest = require('./Raycast');
 const weplist = require('./Weaponslist');
+const speciallist = require('./SpecialBrickSizeTable');	
 const fs = require('fs');
 
 const clr = {
@@ -38,6 +39,7 @@ let online = [];
 let todie = [];
 
 let weapons;
+let specials;
 let delay = 200;
 let projrange = 400;
 let spawned = [];
@@ -221,11 +223,11 @@ class Base_wars {
 				projdamage = 12;
 				break;
 			case 'Bazooka':
-				projradius = 20;
+				projradius = 30;
 				projdamage = 8
 				break;
 			case 'TwinCannon':
-				projradius = 10;
+				projradius = 20;
 				projdamage = 16;
 				break;
 		}
@@ -239,6 +241,12 @@ class Base_wars {
 			
 			let brick = brs.bricks[B];
 			let size = brick.size;
+			if(size[0] === 0) {
+				size = specials[brs.brick_assets[brick.asset_name_index]];
+			}
+			const directions = [[2,1,0],[0,2,1],[0,1,2]];
+			const brdr = Math.floor(brick.direction/2);
+			size = [size[directions[brdr][0]],size[directions[brdr][1]],size[directions[brdr][2]]];
 			if(brick.rotation%2 == 1) {
 				size = [size[1],size[0],size[2]];
 			}
@@ -417,22 +425,21 @@ class Base_wars {
 		}
 		this.initializemachines();
 		weapons = await weplist.list()
-		/*
+		specials = await speciallist.list();
+		
 		this.omegga.on('cmd:enable', async name => {
 			this.modetoggle(name);
 		})
-		
+		/*
 		.on('cmd:test', async player => {
 			this.runmachines();
 		})
-		
-		this.omegga.on('cmd:test2', async name => {
-			const player = await this.omegga.getPlayer(name);
-			let invn = await this.store.get(player.id);
-			invn.money += 9000;
-			this.store.set(player.id, invn);
-		});
 		*/
+		this.omegga.on('cmd:test2', async name => {
+			const brs = await this.omegga.getSaveData();
+			console.log(brs.bricks);
+		});
+		
 		this.omegga.on('cmd:place', async (name, ...args) => {
 			const mcntoplace = args.join(' ');
 			let machinert = machines.filter(mcn => mcn.name === mcntoplace);
