@@ -518,10 +518,13 @@ class Base_wars {
 					return;
 				}
 				}
-				this.omegga.loadSaveData(mcnbrs,{offX: ppos[0], offY: ppos[1], offZ: ppos[2] - 25, quiet: true});
+				let br = mcnbrs.bricks[0];
+				br.position = [br.position[0] + ppos[0], br.position[1] + ppos[1], br.position[2] + ppos[2] - 25];
+				let topl = {...mcnbrs, bricks: [br]};
+				this.omegga.loadSaveData(topl,{quiet: true});
 				invn.machines.splice(invn.machines.indexOf(mcntoplace),1);
 				this.store.set(player.id,invn);
-				machinesbrs.push(mcnbrs.bricks[0]);
+				machinesbrs.push(br);
 				this.omegga.whisper(name,'<b>Succesfully placed ' + clr.ylw + machinert.name + '</color>.</>');
 			}
 		})
@@ -583,11 +586,8 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Buffed impact grenade launcher.</>");
-			this.omegga.whisper(name, clr.orn + "<b>By default slot 3 was set to be a rocket jumper.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Raycast now calculates the direction of bricks.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Special bricks are nolonger indestructable.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Updated the shop.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Fixed /refund not always working.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Fixed 3rd slot being replaced with the item in the first slot when joining.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
 		.on('cmd:refund', async name => {
@@ -652,7 +652,7 @@ class Base_wars {
 				let moneymcn = 0;
 				let invn = await this.store.get(player.id);
 				for(var mcn in machinesbrs) {
-					if(machinesbrs[mcn].position[0] === brc.p[0] && machinesbrs[mcn].position[1] === brc.p[1] && machinesbrs[mcn].position[2] === brc.p[2]) {
+					if(machinesbrs[mcn].position[0] == brc.p[0] && machinesbrs[mcn].position[1] == brc.p[1] && machinesbrs[mcn].position[2] == brc.p[2]) {
 						moneymcn = machinesbrs[mcn];
 						const data = moneymcn.components.BCD_Interact.ConsoleTag.split(' ');
 						let pname = '';
@@ -752,6 +752,7 @@ class Base_wars {
 				this.omegga.getPlayer(player.id).setTeam(1);
 				this.omegga.getPlayer(player.id).giveItem(weapons[invn.selected[0]]);
 				this.omegga.getPlayer(player.id).giveItem(weapons[invn.selected[1]]);
+				this.omegga.getPlayer(player.id).giveItem(weapons['rocket jumper']);
 			}
 			else {
 				this.omegga.getPlayer(player.id).setTeam(0);
