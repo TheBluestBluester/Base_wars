@@ -572,7 +572,11 @@ class Base_wars {
 			if(checklegitimacy.length === 0) { return; }
 			const argsarray = data.message.split(' ');
 			if(argsarray[4] === data.player.name && !mcntimeout.includes(data.player.id)) {
-				if(argsarray[0] === 'Printer' && argsarray[1] === 'Manual' && enablechecker) {
+				if(!enablechecker) {
+					this.omegga.middlePrint(data.player.name,clr.red+'<b>Printers can only work during fight mode.</>');
+					return;
+				}
+				if(argsarray[0] === 'Printer' && argsarray[1] === 'Manual') {
 					let pdata = await this.store.get(data.player.id);
 					pdata.money += 2;
 					this.store.set(data.player.id,pdata);
