@@ -70,7 +70,7 @@
 			},
 			"Water":
 			{
-				"waterHeight": 0,
+				"waterHeight": 4,
 				"waterAbsorption":
 				{
 					"x": 0.0065000001341104507,
