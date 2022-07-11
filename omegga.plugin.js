@@ -251,7 +251,7 @@ class Base_wars {
 			const brdr = Math.floor(brick.direction/2);
 			size = [size[directions[brdr][0]],size[directions[brdr][1]],size[directions[brdr][2]]];
 			brick.size = size;
-			console.log(brick);
+			//console.log(brick);
 			const bpos = brick.position;
 			const BP1 = {
 			x: bpos[0] - size[0],
@@ -427,11 +427,11 @@ class Base_wars {
 		this.initializemachines();
 		weapons = await weplist.list()
 		specials = await speciallist.list();
-		/*
+		
 		this.omegga.on('cmd:enable', async name => {
 			this.modetoggle(name);
 		})
-		
+		/*
 		.on('cmd:test', async player => {
 			this.runmachines();
 		})
