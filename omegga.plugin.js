@@ -592,8 +592,7 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Fixed /refund not always working.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Fixed 3rd slot being replaced with the item in the first slot when joining.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Removed a console.log(); that i left by accident causing a lot of lag when shooting.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
 		.on('cmd:refund', async name => {
