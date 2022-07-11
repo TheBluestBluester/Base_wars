@@ -427,11 +427,11 @@ class Base_wars {
 		this.initializemachines();
 		weapons = await weplist.list()
 		specials = await speciallist.list();
-		
+		/*
 		this.omegga.on('cmd:enable', async name => {
 			this.modetoggle(name);
 		})
-		/*
+		
 		.on('cmd:test', async player => {
 			this.runmachines();
 		})
