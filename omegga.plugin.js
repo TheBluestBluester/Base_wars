@@ -230,6 +230,8 @@ class Base_wars {
 				projradius = 20;
 				projdamage = 16;
 				break;
+			default:
+				return;
 		}
 		for(var B in brs.bricks) {
 			
