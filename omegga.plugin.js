@@ -32,11 +32,14 @@ let shoplist = [
 	{weapon: 'twin cannon', price: 4600}
 ];
 
-const moneyfile = fs.readFileSync(__dirname + "/Money.brs");
+const moneyfile = fs.readFileSync(__dirname + "/Other/Money.brs");
 const moneybrs = brs.read(moneyfile);
+const corefile = fs.readFileSync(__dirname + "/Other/Base core.brs");
+const corebrs = brs.read(corefile);
 
 let online = [];
 let todie = [];
+let basecores = [];
 
 let weapons;
 let specials;
@@ -46,6 +49,8 @@ let spawned = [];
 let e = false;
 let enablechecker = false;
 let time = 10;
+let XYBoundry = 26000;
+let ZBoundry = 9000;
 
 let buildtime = 10;
 let fighttime = 10;
@@ -372,7 +377,7 @@ class Base_wars {
 			let brs = await this.omegga.getSaveData();
 			if(brs == null) {return;}
 			machinesbrs = brs;
-			machinesbrs = machinesbrs.bricks.filter(machine => 'BCD_Interact' in machine.components && machinesbrs.brick_owners[machine.owner_index - 1].name.indexOf('MCN') === 0);
+			machinesbrs = machinesbrs.bricks.filter(machine => 'BCD_Interact' in machine.components && machinesbrs.brick_owners[machine.owner_index - 1].name.indexOf('MCN') === 0 && Math.abs(machine.position[0]) < XYBoundry * 10 && Math.abs(machine.position[1]) < XYBoundry * 10 && Math.abs(machine.position[2]) < ZBoundry * 10);
 			brs.bricks = brs.bricks.filter(brick => 'BCD_ItemSpawn' in brick.components);
 			for(var br in brs.bricks) {
 				const brick = brs.bricks[br];
@@ -448,7 +453,7 @@ class Base_wars {
 			let machinert = machines.filter(mcn => mcn.name === mcntoplace);
 			const player = await this.omegga.getPlayer(name);
 			const ppos = await player.getPosition();
-			let nearbybricks = await this.omegga.getSaveData({center: [Math.floor(ppos[0]), Math.floor(ppos[1]), Math.floor(ppos[2])], extent: [200,200,200]});
+			let nearbybricks = await this.omegga.getSaveData({center: [Math.floor(ppos[0]), Math.floor(ppos[1]), Math.floor(ppos[2])], extent: [projrange,projrange,projrange]});
 			let invn = await this.store.get(player.id);
 			if(machinert.length > 0) {
 				if(!(invn.machines.includes(mcntoplace) || mcntoplace === 'manual printer')) {
@@ -466,6 +471,10 @@ class Base_wars {
 				ppos[0] = Math.round(ppos[0]/10)*10;
 				ppos[1] = Math.round(ppos[1]/10)*10;
 				ppos[2] = Math.round(ppos[2]);
+				if(Math.abs(ppos[0]) > XYBoundry * 10 || Math.abs(ppos[1]) > XYBoundry * 10 || Math.abs(ppos[2]) > ZBoundry * 10) {
+					this.omegga.whisper(name, clr.red + '<b>You can\'t place machines outside the boundries.</>');
+					return;
+				}
 				let mcnsize = [0,0,0];
 				for(var b=0;b<mcnbrs.brick_count;b++) {
 					let brick = mcnbrs.bricks[b];
@@ -528,6 +537,8 @@ class Base_wars {
 				this.store.set(player.id,invn);
 				machinesbrs.push(br);
 				this.omegga.whisper(name,'<b>Succesfully placed ' + clr.ylw + machinert.name + '</color>.</>');
+				const ontop = [br.position[0], br.position[1], br.position[2] + br.size[2]];
+				this.omegga.writeln('Chat.Command /TP '+name+' ' +ontop.join(' ')+' 0');
 			}
 		})
 		.on('cmd:pay', async (name, ...args) => {
@@ -592,8 +603,72 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Removed a console.log(); that i left by accident causing a lot of lag when shooting.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Nolonger required to rejoin the server for the plugin to recognize you as online.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Added base cores. Base cores prevent players from setting spawn at your base. /basewars commands for the commands for base cores. You can ONLY place 1.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Added boundries of 26000 studs in X n' Y coordinates and a height limit of 9000 studs. Machines cannot be placed outside these boundries. Machines placed outside boundries before the update will nolonger work.</>");
+			this.omegga.whisper(name, clr.orn + "<b>You now will be teleported on top of the machines when placing them.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
+		})
+		.on('cmd:placecore', async name => {
+			const player = await this.omegga.getPlayer(name);
+			const ppos = await player.getPosition();
+			const alreadyplaced = basecores.filter(brick => brick.components.BCD_Interact.ConsoleTag.indexOf(name) > -1);
+			if(alreadyplaced.length > 0) {
+				this.omegga.whisper(name, clr.red + '<b>You can\'t have more than 1 core,</>');
+				return;
+			}
+			let nearbybricks = await this.omegga.getSaveData({center: [Math.floor(ppos[0]), Math.floor(ppos[1]), Math.floor(ppos[2])], extent: [projrange,projrange,projrange]});
+			let core = corebrs.bricks[0];
+			ppos[0] = Math.round(ppos[0]/10)*10;
+			ppos[1] = Math.round(ppos[1]/10)*10;
+			ppos[2] = Math.round(ppos[2]);
+			core.position = ppos;
+			const mcnsize = core.size
+			if(nearbybricks != null) {
+				for(var b in nearbybricks.bricks) {
+					let brick = nearbybricks.bricks[b];
+					let size = brick.size;
+					const rotation = brick.rotation;
+					if(rotation%2 == 1) {
+						size = [size[1],size[0],size[2]];
+					}
+					const directions = [[2,1,0],[0,2,1],[0,1,2]];
+					const brdr = Math.floor(brick.direction/2);
+					size = [size[directions[brdr][0]],size[directions[brdr][1]],size[directions[brdr][2]]];
+					nearbybricks.bricks[b] = {...brick, size: size};
+				}
+				const colliding = nearbybricks.bricks.filter(
+					brck => brck.position[0] < ppos[0] + mcnsize[0] + brck.size[0] &&
+					brck.position[0] > ppos[0] - mcnsize[0] - brck.size[0] &&
+					brck.position[1] < ppos[1] + mcnsize[1] + brck.size[1] &&
+					brck.position[1] > ppos[1] - mcnsize[1] - brck.size[1] &&
+					brck.position[2] < ppos[2] - 25 + mcnsize[2] + brck.size[2] + mcnsize[2] &&
+					brck.position[2] > ppos[2] - 25 - brck.size[2]
+				);
+				if(colliding.length > 0) {
+					this.omegga.whisper(name,clr.red+'<b>The core is overlapping with other bricks.</>');
+					return;
+				}
+			}
+			core.components.BCD_Interact.ConsoleTag = name;
+			const toplace = {...corebrs, bricks: [core], brick_owners: [{
+				id: '00000000-0000-0000-0000-000000000040',
+				name: 'BaseCore',
+				bricks: 0
+			}]};
+			basecores.push(core);
+			this.omegga.loadSaveData(toplace, {quiet: true});
+			this.omegga.whisper(name, clr.ylw + '<b>Succesfully placed the base core.</>');
+		})
+		.on('cmd:removecore', async name => {
+			const core = basecores.filter(brick => brick.components.BCD_Interact.ConsoleTag.indexOf(name) > -1);
+			if(core.length === 0) {
+				this.omegga.whisper(name, clr.red + '<b>You don\'t have any cores.</>');
+				return;
+			}
+			basecores.splice(basecores.indexOf(core), 1);
+			this.omegga.clearRegion({center: core[0].position, extent: core[0].size});
+			this.omegga.whisper(name, clr.ylw + '<b>Removed a base core sucessfully.</>');
 		})
 		.on('cmd:refund', async name => {
 			const player = await this.omegga.getPlayer(name);
@@ -771,8 +846,18 @@ class Base_wars {
 			const haskey = await this.store.keys();
 			const player = await this.omegga.getPlayer(name);
 			if(haskey.includes(player.id)) {
-				let invnt = await this.store.get(player.id);
 				const pos = await this.omegga.getPlayer(name).getPosition();
+				const cores = basecores.filter(brick => brick.components.BCD_Interact.ConsoleTag.indexOf(name) === -1 && Math.sqrt(
+				(pos[0] - brick.position[0]) * (pos[0] - brick.position[0]) +
+				(pos[1] - brick.position[1]) * (pos[1] - brick.position[1]) +
+				(pos[2] - brick.position[2]) * (pos[2] - brick.position[2])
+				) < 640);
+				console.log(cores[0]);
+				if(cores.length > 0) {
+					this.omegga.whisper(name, clr.red + '<b>You cannot set spawn near base cores.</>');
+					return;
+				}
+				let invnt = await this.store.get(player.id);
 				invnt.base = [Math.floor(pos[0]),Math.floor(pos[1]),Math.floor(pos[2])];
 				this.store.set(player.id,invnt);
 				this.omegga.whisper(name,clr.ylw+"<b>Base spawn has been set.</>");
@@ -886,6 +971,8 @@ class Base_wars {
 					this.omegga.whisper(name, '<b>' + clr.grn + '/clearspawn</color> clears your base spawn.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/place (machine name)</color> place down a machine.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/refund </color>removes a machine that you are looking at. Refunded machines return 80% of their original price.</>');
+					this.omegga.whisper(name, '<b>' + clr.grn + '/placecore </color>places a core which prevents players from setting spawn at your base. You can ONLY place 1.</>');
+					this.omegga.whisper(name, '<b>' + clr.grn + '/removecore </color>removes a core.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/pay (money) (player)</color> gives a player money.</>');
 					break;
 				case 'machines':
@@ -931,9 +1018,16 @@ class Base_wars {
 				this.omegga.whisper(name, 'Everyone\'s progress has been wiped.')
 			}
 		});
+		let cores = await this.omegga.getSaveData();
+		cores = cores.bricks.filter(brick => 'BCD_Interact' in brick.components && cores.brick_owners[brick.owner_index - 1].name.indexOf('BaseCore') === 0);
+		basecores = cores;
+		const players = await this.omegga.getPlayers();
+		for(var pl in players) {
+			online.push(players[pl].name);
+		}
 		ProjectileCheckInterval = setInterval(() => this.CheckProjectiles(enablechecker),delay);
 		CountDownInterval = setInterval(() => this.decrement(true),60000);
-		return { registeredCommands: ['wipeall','loadout','viewinv','setspawn','clearspawn','place','buy','listshop','basewars','refund','pay','changelog'] };
+		return { registeredCommands: ['wipeall','loadout','viewinv','setspawn','clearspawn','place','buy','listshop','basewars','refund','pay','changelog','placecore','removecore'] };
 	}
 	async pluginEvent(event, from, ...args) {
 		if(event === 'spawn') {
@@ -954,10 +1048,6 @@ class Base_wars {
 				return;
 			}
 			const player = args[0].player;
-			//if(!todie.includes(player.name)) {
-				//todie.push(player.name);
-				//return;
-			//}
 			const invn = await this.store.get(player.id);
 			for(var invwep in invn.selected) {
 				const weps = shoplist.filter(wep => wep.weapon === invn.selected[invwep] && wep.price > 2000);
