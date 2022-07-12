@@ -175,6 +175,12 @@ class Base_wars {
 			machinestoreload.bricks = machinesbrs;
 			this.omegga.loadSaveData(machinestoreload,{quiet: true});
 		}
+		const toplace = {...corebrs, bricks: basecores, brick_owners: [{
+			id: '00000000-0000-0000-0000-000000000040',
+			name: 'BaseCore',
+			bricks: 0
+		}]};
+		//this.omegga.loadSaveData(toplace,{quiet: true});
 		
 	}
 	
@@ -1019,8 +1025,10 @@ class Base_wars {
 			}
 		});
 		let cores = await this.omegga.getSaveData();
-		cores = cores.bricks.filter(brick => 'BCD_Interact' in brick.components && cores.brick_owners[brick.owner_index - 1].name.indexOf('BaseCore') === 0);
-		basecores = cores;
+		if(cores != null) {
+			cores = cores.bricks.filter(brick => 'BCD_Interact' in brick.components && cores.brick_owners[brick.owner_index - 1].name.indexOf('BaseCore') === 0);
+			basecores = cores;
+		}
 		const players = await this.omegga.getPlayers();
 		for(var pl in players) {
 			online.push(players[pl].name);
