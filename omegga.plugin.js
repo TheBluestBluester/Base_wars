@@ -175,12 +175,12 @@ class Base_wars {
 			machinestoreload.bricks = machinesbrs;
 			this.omegga.loadSaveData(machinestoreload,{quiet: true});
 		}
-		const toplace = {...corebrs, bricks: basecores, brick_owners: [{
+		const coreplace = {...corebrs, bricks: basecores, brick_owners: [{
 			id: '00000000-0000-0000-0000-000000000040',
 			name: 'BaseCore',
 			bricks: 0
 		}]};
-		//this.omegga.loadSaveData(toplace,{quiet: true});
+		this.omegga.loadSaveData(coreplace,{quiet: true});
 		
 	}
 	
@@ -620,7 +620,7 @@ class Base_wars {
 			const ppos = await player.getPosition();
 			const alreadyplaced = basecores.filter(brick => brick.components.BCD_Interact.ConsoleTag.indexOf(name) > -1);
 			if(alreadyplaced.length > 0) {
-				this.omegga.whisper(name, clr.red + '<b>You can\'t have more than 1 core,</>');
+				this.omegga.whisper(name, clr.red + '<b>You can\'t have more than 1 core.</>');
 				return;
 			}
 			let nearbybricks = await this.omegga.getSaveData({center: [Math.floor(ppos[0]), Math.floor(ppos[1]), Math.floor(ppos[2])], extent: [projrange,projrange,projrange]});
