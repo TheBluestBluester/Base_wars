@@ -180,7 +180,9 @@ class Base_wars {
 			name: 'BaseCore',
 			bricks: 0
 		}]};
-		this.omegga.loadSaveData(coreplace,{quiet: true});
+		if(basecores.length > 0) {
+			this.omegga.loadSaveData(coreplace,{quiet: true});
+		}
 		
 	}
 	
