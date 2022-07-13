@@ -561,6 +561,10 @@ class Base_wars {
 				this.omegga.whisper(name, clr.red + '<b>Negative money doesn\'t exist.</>');
 				return;
 			}
+			if(isNaN(money)) {
+				this.omegga.whisper(name, clr.red + '<b>NaN money doesn\'t exist.</> <emoji>egg</>');
+				return;
+			}
 			const pid1 = await this.omegga.getPlayer(name);
 			let invn = await this.store.get(pid1.id);
 			if(invn.money < money) {
@@ -574,7 +578,7 @@ class Base_wars {
 			reciver.money += money;
 			this.store.set(pid2.id, reciver);
 			this.omegga.whisper(name, '<b>You have paid ' + clr.ylw + '$' + clr.dgrn + money + '</></><b> to ' + clr.ylw + player + '</><b>.</>');
-			this.omegga.whisper(player, '<b>You have recived ' + clr.ylw + '$' + clr.dgrn + money + '</></><b> from ' + clr.ylw + name + '</><b>.</>');
+			this.omegga.whisper(player, '<b>You have recieved ' + clr.ylw + '$' + clr.dgrn + money + '</></><b> from ' + clr.ylw + name + '</><b>.</>');
 		})
 		.on('interact', async data => {
 			if(data.message.indexOf('Money') === 0) {
@@ -611,10 +615,8 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Nolonger required to rejoin the server for the plugin to recognize you as online.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Added base cores. Base cores prevent players from setting spawn at your base. /basewars commands for the commands for base cores. You can ONLY place 1.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Added boundries of 26000 studs in X n' Y coordinates and a height limit of 9000 studs. Machines cannot be placed outside these boundries. Machines placed outside boundries before the update will nolonger work.</>");
-			this.omegga.whisper(name, clr.orn + "<b>You now will be teleported on top of the machines when placing them.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Fixed people giving eachother " + clr.ylw + "$" + clr.dgrn + "Nan" + clr.orn + " money which causes the reciever to have a bank of Null.</> <emoji>egg</>");
+			this.omegga.whisper(name, clr.orn + "<b>Fixed a spelling mistake.");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
 		.on('cmd:placecore', async name => {
