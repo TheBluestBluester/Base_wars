@@ -49,7 +49,7 @@ let spawned = [];
 let e = false;
 let enablechecker = false;
 let time = 10;
-let XYBoundry = 26000;
+let XYBoundry = 38000;
 let ZBoundry = 9000;
 
 let buildtime = 10;
@@ -616,6 +616,7 @@ class Base_wars {
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
 			this.omegga.whisper(name, clr.orn + "<b>Fixed people giving eachother " + clr.ylw + "$" + clr.dgrn + "Nan" + clr.orn + " money which causes the reciever to have a bank of Null.</> <emoji>egg</>");
+			this.omegga.whisper(name, clr.orn + "<b>Bumped the boundry limit to 38000 studs.</>");
 			this.omegga.whisper(name, clr.orn + "<b>Fixed a spelling mistake.");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
