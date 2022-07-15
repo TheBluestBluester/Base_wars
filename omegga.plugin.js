@@ -243,8 +243,8 @@ class Base_wars {
 				projradius = 20;
 				projdamage = 16;
 				break;
-			//default:
-				//return;
+			default:
+				return;
 		}
 		for(var B in brs.bricks) {
 			
@@ -385,7 +385,7 @@ class Base_wars {
 			let brs = await this.omegga.getSaveData();
 			if(brs == null) {return;}
 			machinesbrs = brs;
-			machinesbrs = machinesbrs.bricks.filter(machine => 'BCD_Interact' in machine.components && machinesbrs.brick_owners[machine.owner_index - 1].name.indexOf('MCN') === 0 && Math.abs(machine.position[0]) < XYBoundry * 10 && Math.abs(machine.position[1]) < XYBoundry * 10 && Math.abs(machine.position[2]) < ZBoundry * 10);
+			machinesbrs = machinesbrs.bricks.filter(machine => 'BCD_Interact' in machine.components && machinesbrs.brick_owners[machine.owner_index - 1].name.indexOf('MCN') === 0 && Math.abs(machine.position[0]) < XYBoundry * 10 && Math.abs(machine.position[1]) < XYBoundry * 10 && machine.position[2] < ZBoundry * 10 && machine.position[2] > -1);
 			brs.bricks = brs.bricks.filter(brick => 'BCD_ItemSpawn' in brick.components);
 			for(var br in brs.bricks) {
 				const brick = brs.bricks[br];
@@ -615,9 +615,8 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Fixed people giving eachother " + clr.ylw + "$" + clr.dgrn + "Nan" + clr.orn + " money which causes the reciever to have a bank of Null.</> <emoji>egg</>");
-			this.omegga.whisper(name, clr.orn + "<b>Bumped the boundry limit to 38000 studs.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Fixed a spelling mistake.");
+			this.omegga.whisper(name, clr.orn + "<b>Fixed rocket jumper dealing damage.</> <emoji>egg</>");
+			this.omegga.whisper(name, clr.orn + "<b>Floor boundry is now 0.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
 		.on('cmd:placecore', async name => {
