@@ -200,7 +200,7 @@
 				"p_Tools.Circler.Use": true,
 				"p_Prefabs.Load": false,
 				"p_Tools.Resizer.Use": true,
-				"p_Tools.Selector.Use": false,
+				"p_Tools.Selector.Use": true,
 				"p_Self.SelfDestruct": true,
 				"p_Items.Spawn": false,
 				"p_Self.Sprint": true,
