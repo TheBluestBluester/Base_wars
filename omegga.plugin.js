@@ -245,7 +245,7 @@ class Base_wars {
 						const bps = Number(data[2]);
 						for(var trs in trust) {
 							const trusted = trust[trs];
-							if(trusted.player === core && trusted.trusts === online[pl]) {
+							if(trusted.player === townr && trusted.trusts === online[pl]) {
 								notdamage = true;
 							}
 						}
@@ -970,6 +970,9 @@ class Base_wars {
 						}
 						else if(data.includes('Manual')){
 							pname = data.splice(4,data.length - 4).join(' ');
+						}
+						else if(data.includes('Str')){
+							pname = data.splice(7,data.length - 7).join(' ');
 						}
 						else {
 							pname = data.splice(5,data.length - 5).join(' ');
