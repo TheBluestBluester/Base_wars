@@ -44,7 +44,8 @@ let basecores = [];
 let weapons;
 let specials;
 let delay = 200;
-let projrange = 400;
+let projrange = 800;
+let turretrange = 800;
 let spawned = [];
 let e = false;
 let enablechecker = false;
@@ -52,16 +53,25 @@ let time = 10;
 let XYBoundry = 38000;
 let ZBoundry = 9000;
 
+let totax = [];
+let minbrickcount = 5000;
+
 let buildtime = 10;
 let fighttime = 10;
 
 let ProjectileCheckInterval;
 let CountDownInterval;
+let skipnturretinterval;
 
 let machinesbrs = [];
 let allowerase = false;
 let machines = [];
 let mcntimeout = [];
+
+let skipcooldown = 0;
+let skiptime = 0;
+let wanttoskip = [];
+let minplayers = 0;
 
 class Base_wars {
 	
@@ -131,6 +141,19 @@ class Base_wars {
 		
 	}
 	
+	async tax() {
+		for(var pl in totax) {
+			const evader = totax[pl];
+			const pid = await this.omegga.getPlayer(evader.name);
+			let invn = await this.store.get(pid.id);
+			invn.money -= evader.tax;
+			if(invn.money < 0) {
+				invn.money = 0;
+			}
+			this.store.set(pid.id,invn);
+		}
+	}
+	
 	async runmachines() {
 		let usedgenerators = [];
 		if(machinesbrs.length === 0) {
@@ -186,9 +209,150 @@ class Base_wars {
 		
 	}
 	
+	async turrethandler() {
+		let usedgenerators = [];
+		const turrets = machinesbrs.filter(smcn => smcn.components.BCD_Interact.ConsoleTag.split(' ')[0] === 'Str')
+		for(var pl in online) {
+			const player = await this.omegga.getPlayer(online[pl]);
+			const ppos = await player.getPosition();
+			const inrange = turrets.filter(smcn => Math.sqrt(
+			(ppos[0] - smcn.position[0]) * (ppos[0] - smcn.position[0]) +
+			(ppos[1] - smcn.position[1]) * (ppos[1] - smcn.position[1]) +
+			(ppos[2] - smcn.position[2]) * (ppos[2] - smcn.position[2])
+			) < Number(smcn.components.BCD_Interact.ConsoleTag.split(' ')[5]) * 10);
+			if(inrange.length > 0) {
+				for(var ir in inrange) {
+					const data = inrange[ir].components.BCD_Interact.ConsoleTag.split(' ');
+					const townr = data.splice(7,data.length - 7).join(' ');
+					const generators = machinesbrs.filter(gmcn => gmcn.components.BCD_Interact.ConsoleTag.split(' ')[0] === 'Gen' && Math.sqrt(
+					(inrange[ir].position[0] - gmcn.position[0]) * (inrange[ir].position[0] - gmcn.position[0]) +
+					(inrange[ir].position[1] - gmcn.position[1]) * (inrange[ir].position[1] - gmcn.position[1]) +
+					(inrange[ir].position[2] - gmcn.position[2]) * (inrange[ir].position[2] - gmcn.position[2])
+					) < 500 && !usedgenerators.includes(gmcn.position));
+					let energy = 0;
+					const trust = await this.store.get("Trusted");
+					let notdamage = false;
+					for(var gen in generators) {
+						const gdata = generators[gen].components.BCD_Interact.ConsoleTag.split(' ');
+						const gpname = gdata.splice(5,data.length - 5).join(' ');
+						if(townr === gpname && energy < Number(data[6])) {
+							energy += Number(gdata[4]);
+							usedgenerators.push(generators[gen].position);
+						}
+					}
+					if(energy >= Number(data[6])) {
+						const damage = Number(data[4]);
+						const bps = Number(data[2]);
+						for(var trs in trust) {
+							const trusted = trust[trs];
+							if(trusted.player === core && trusted.trusts === online[pl]) {
+								notdamage = true;
+							}
+						}
+						const disttopl = Math.sqrt(
+						(ppos[0] - inrange[ir].position[0]) * (ppos[0] - inrange[ir].position[0]) +
+						(ppos[1] - inrange[ir].position[1]) * (ppos[1] - inrange[ir].position[1]) +
+						(ppos[2] - inrange[ir].position[2]) * (ppos[2] - inrange[ir].position[2])
+						);
+						if(townr != online[pl] && !notdamage) {
+							let brs = await this.omegga.getSaveData({center: inrange[ir].position, extent: [turretrange,turretrange,turretrange]});
+							let canshoot = true;
+							let hitbrick = [];
+							if(brs != null) {
+								const yaw = Math.atan2(ppos[1] - inrange[ir].position[1],ppos[0] - inrange[ir].position[0]) * 180 / Math.PI;
+								const distl = Math.sqrt(
+								(ppos[0] - inrange[ir].position[0]) * (ppos[0] - inrange[ir].position[0]) +
+								(ppos[1] - inrange[ir].position[1]) * (ppos[1] - inrange[ir].position[1])
+								);
+								const pitch = Math.atan2(ppos[2] - inrange[ir].position[2],distl) * 180 / Math.PI;
+								const deg2rad = Math.PI / 180;
+								let ray1 = {x: inrange[ir].position[0], y: inrange[ir].position[1], z: inrange[ir].position[2]};
+								for(var B in brs.bricks) {
+									let ray2 = {
+									x: inrange[ir].position[0] + Math.sin((-yaw + 90) * deg2rad) * turretrange * Math.cos(pitch * deg2rad),
+									y: inrange[ir].position[1] + Math.cos((-yaw + 90) * deg2rad) * turretrange * Math.cos(pitch * deg2rad),
+									z: inrange[ir].position[2] + turretrange * Math.sin(pitch * deg2rad)
+									};
+			
+									let brick = brs.bricks[B];
+									let size = brick.size;
+									if(size[0] === 0) {
+										size = specials[brs.brick_assets[brick.asset_name_index]];
+									}
+									if(brick.rotation%2 == 1) {
+										size = [size[1],size[0],size[2]];
+									}
+									const directions = [[2,1,0],[0,2,1],[0,1,2]];
+									const brdr = Math.floor(brick.direction/2);
+									size = [size[directions[brdr][0]],size[directions[brdr][1]],size[directions[brdr][2]]];
+									brick.size = size;
+									const bpos = brick.position;
+									const BP1 = {
+									x: bpos[0] - size[0],
+									y: bpos[1] - size[1],
+									z: bpos[2] - size[2],
+									};
+									const BP2 = {
+									x: bpos[0] + size[0],
+									y: bpos[1] + size[1],
+									z: bpos[2] + size[2],
+									};
+									if(await raycasttest.CheckLineBox(BP1, BP2, ray1, ray2)) {
+										hitbrick.push({p: bpos, s: size});
+									}
+								}
+							}
+							let over = false;
+							for(var b in hitbrick) {
+								const br = hitbrick[b];
+								if(br.p[0] !== inrange[ir].position[0] && br.p[1] !== inrange[ir].position[1] && br.p[2] !== inrange[ir].position[2] && !over) {
+									const disttobr = Math.sqrt(
+									(br.p[0] - inrange[ir].position[0]) * (br.p[0] - inrange[ir].position[0]) +
+									(br.p[1] - inrange[ir].position[1]) * (br.p[1] - inrange[ir].position[1]) +
+									(br.p[2] - inrange[ir].position[2]) * (br.p[2] - inrange[ir].position[2])
+									);
+									if(disttobr < disttopl) {
+										over = true;
+										canshoot = false;
+									}
+								}
+							}
+							if(canshoot) {
+								const interval = setInterval(() => this.turretdamageplayer(player,damage), Math.floor(1000 / bps));
+								setTimeout(() => clearInterval(interval), 999);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	//less lag = better so i am resorting to doing it this way
+	async turretdamageplayer(player, damage) {
+		player.damage(damage);
+	}
+	
+	async skipdecrementnturrets() {
+		if(enablechecker && online.length > 0) {
+			this.turrethandler();
+		}
+		if(skipcooldown > 0) {
+			skipcooldown--;
+		}
+		if(skiptime > 0) {
+			skiptime--;
+			if(skiptime === 0) {
+				this.omegga.broadcast(clr.red + '<b>Not enough people have voted to skip the round. Skip has been cancelled.</>');
+				wanttoskip = [];
+				skipcooldown = 30;
+			}
+		}
+	}
+	
 	async decrement(enabled) {
 		if(enablechecker) {
 			this.runmachines();
+			this.tax();
 		}
 		time--;
 		switch(time) {
@@ -322,6 +486,9 @@ class Base_wars {
 					if(mmcnd.includes('Printer')) {
 						pname = mmcnd.splice(6,mmcnd.length - 6).join(' ');
 					}
+					else if(mmcnd.includes('Str')) {
+						pname = mmcnd.splice(7,mmcnd.length - 7).join(' ');
+					}
 					else {
 						pname = mmcnd.splice(5,mmcnd.length - 5).join(' ');
 					}
@@ -370,6 +537,20 @@ class Base_wars {
 		});
 		console.log(test);
 	}
+	
+	//merca
+	async preparetax(brickowners) {
+		totax = [];
+		for(var owner in brickowners) {
+			const brickowner = brickowners[owner];
+			if(brickowner.bricks > minbrickcount) {
+				const tax = Math.ceil((brickowner.bricks - minbrickcount) / 6);
+				this.omegga.whisper(brickowner.name, clr.orn + '<b>You have exceeded a minimum brick count of ' + clr.ylw + minbrickcount + clr.orn + ' bricks. You now will be taxed ' + clr.ylw + '$' + clr.dgrn + tax + clr.orn + ' each minute.</>');
+				totax.push({name: brickowner.name, tax: tax});
+			}
+		}
+	}
+	
 	async modetoggle(name) {
 		enablechecker = !enablechecker;
 		const players = this.omegga.getPlayers();
@@ -384,8 +565,9 @@ class Base_wars {
 			}
 			let brs = await this.omegga.getSaveData();
 			if(brs == null) {return;}
+			let bricjowners = brs.brick_owners.filter(owner => online.includes(owner.name));
 			machinesbrs = brs;
-			machinesbrs = machinesbrs.bricks.filter(machine => 'BCD_Interact' in machine.components && machinesbrs.brick_owners[machine.owner_index - 1].name.indexOf('MCN') === 0 && Math.abs(machine.position[0]) < XYBoundry * 10 && Math.abs(machine.position[1]) < XYBoundry * 10 && machine.position[2] < ZBoundry * 10 && machine.position[2] > -1);
+			machinesbrs = machinesbrs.bricks.filter(machine => 'BCD_Interact' in machine.components && machinesbrs.brick_owners[machine.owner_index - 1].name.indexOf('MCN') === 0 && Math.abs(machine.position[0]) < XYBoundry * 10 && Math.abs(machine.position[1]) < XYBoundry * 10 && machine.position[2] < ZBoundry * 10 && machine.position[2] >= 0);
 			brs.bricks = brs.bricks.filter(brick => 'BCD_ItemSpawn' in brick.components);
 			for(var br in brs.bricks) {
 				const brick = brs.bricks[br];
@@ -397,6 +579,7 @@ class Base_wars {
 			}
 			this.omegga.broadcast("<size=\"50\"><b>Fight!</>");
 			this.omegga.broadcast("<b>You have " + fighttime + " minutes of fight time.</>");
+			this.preparetax(bricjowners);
 			time = fighttime;
 		}
 		else {
@@ -442,18 +625,18 @@ class Base_wars {
 		this.initializemachines();
 		weapons = await weplist.list()
 		specials = await speciallist.list();
-		/*
+		
 		this.omegga.on('cmd:enable', async name => {
 			this.modetoggle(name);
 		})
-		
+		/*
 		.on('cmd:test', async player => {
 			this.runmachines();
 		})
 		
 		this.omegga.on('cmd:test2', async name => {
-			const brs = await this.omegga.getSaveData();
-			console.log(brs.bricks);
+			this.omegga.getPlayer(name).damage(10);
+			console.log("test");
 		});
 		*/
 		this.omegga.on('cmd:place', async (name, ...args) => {
@@ -479,7 +662,7 @@ class Base_wars {
 				ppos[0] = Math.round(ppos[0]/10)*10;
 				ppos[1] = Math.round(ppos[1]/10)*10;
 				ppos[2] = Math.round(ppos[2]);
-				if(Math.abs(ppos[0]) > XYBoundry * 10 || Math.abs(ppos[1]) > XYBoundry * 10 || Math.abs(ppos[2]) > ZBoundry * 10) {
+				if(Math.abs(ppos[0]) > XYBoundry * 10 || Math.abs(ppos[1]) > XYBoundry * 10 || Math.abs(ppos[2]) > ZBoundry * 10 || Math.abs(ppos[2]) < 0) {
 					this.omegga.whisper(name, clr.red + '<b>You can\'t place machines outside the boundries.</>');
 					return;
 				}
@@ -547,6 +730,34 @@ class Base_wars {
 				this.omegga.whisper(name,'<b>Succesfully placed ' + clr.ylw + machinert.name + '</color>.</>');
 				const ontop = [br.position[0], br.position[1], br.position[2] + br.size[2]];
 				this.omegga.writeln('Chat.Command /TP '+name+' ' +ontop.join(' ')+' 0');
+			}
+		})
+		.on('cmd:skip', async name => {
+			const players = this.omegga.players;
+			const minimum = players.length * 0.8;
+			if(skipcooldown > 0) {
+				this.omegga.whisper(name, clr.red + '<b>You must wait ' + clr.orn + skipcooldown + clr.red + ' seconds before starting a next vote skip.</>');
+				return;
+			}
+			if(wanttoskip.includes(name)) {
+				this.omegga.whisper(name, clr.orn + '<b>You already have voted to skip</>');
+				return;
+			}
+			if(skiptime === 0) {
+				this.omegga.broadcast(clr.ylw + '<b>' + name + clr.grn + ' has started a vote skip!</>');
+				skiptime = 30;
+				minplayers = Math.ceil(minimum);
+			}
+			wanttoskip.push(name);
+			const lefttovote = minplayers - wanttoskip.length;
+			this.omegga.broadcast(clr.ylw + '<b>' + name + '</></><b> wants to skip this round. Atleast ' + clr.grn + lefttovote + '</><b> more players needed to skip the round.</>');
+			if(lefttovote < 1) {
+				this.omegga.broadcast(clr.ylw + '<b>Enouph players have voted to skip this round.</>');
+				skiptime = 0;
+				wanttoskip = [];
+				time = 1;
+				this.decrement(true);
+				skipcooldown = 30;
 			}
 		})
 		.on('cmd:pay', async (name, ...args) => {
@@ -618,7 +829,13 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Possibly fixed money crashing the plugin when picked up.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Added /skip. /skip lets you vote to skip the current round. People will have 30 seconds to vote when it begins. /skip has a cooldown of 30 seconds.</>");
+			this.omegga.whisper(name, clr.orn + "<b>You now get taxed for going over a certain brick limit each minute, during fight mode and when only online. The amount that you get taxed will depend on how much  you went over the brick limit devided by 6. By default the brick limit is " + clr.ylw + '5000' + clr.orn + '.</>');
+			this.omegga.whisper(name, clr.orn + "<b>Added " + clr.red + 'turrets' + clr.orn + '. Everything about turrets can be found in /basewars machines.</>');
+			this.omegga.whisper(name, clr.orn + "<b>Extended base core range to a radius of 128 studs.</>");
+			this.omegga.whisper(name, clr.orn + "<b>/buy weapon and /buy machine commands are now merged. /basewars commands should show that.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Added trust commands. You can view them in /basewars commands.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Removed darbot.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
 		.on('cmd:placecore', async name => {
@@ -777,10 +994,44 @@ class Base_wars {
 				}
 			}
 		})
+		.on('cmd:trust', async (name, ...args) => {
+			const arg = args[0];
+			args.splice(0,1);
+			const trustpl = args.join('');
+			const player = this.omegga.getPlayer(name);
+			let trust = await this.store.get("Trusted");
+			switch(arg) {
+				case 'add':
+					trust.push({player: name, trusts: trustpl});
+					this.store.set("Trusted",trust);
+					this.omegga.whisper(name,clr.grn + '<b>You now trust ' + trustpl + '.</>');
+					break;
+				case 'remove':
+					const trs = trust.filter(e => e.player === name && e.trusts === trustpl);
+					if(trs.length === 0) {
+						this.omegga.whisper(name,clr.red + '<b>You don\'t have that player trusted yet.</>');
+						return;
+					}
+					trust.splice(trust.indexOf(trs[0]),1);
+					this.store.set("Trusted", trust);
+					this.omegga.whisper(name,clr.orn + '<b>You nolonger trust ' + trustpl + '.</>');
+					break;
+				default:
+					const trs2 = trust.filter(e => e.player === name);
+					this.omegga.whisper(name,clr.grn + '<b>---Trusted---</>');
+					for(var t in trs2) {
+						this.omegga.whisper(name,clr.ylw + '<b>' + trs2[t].trusts + '</>');
+					}
+					this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
+					break;
+			}
+		})
 		.on('cmd:buy', async (name, ...args) => {
-			switch(args[0]) {
-				case 'weapon':
-					const weapon = args.splice(1,args.length).join(' ');
+			const test = args.join(' ');
+			//switch(args[0]) {
+				//case 'weapon':
+				if(shoplist.filter(wpn => wpn.weapon === test).length > 0) {
+					const weapon = args.join(' ');
 					const shopweapon = shoplist.filter(wpn => wpn.weapon === weapon);
 					if(shopweapon.length > 0) {
 						const player = await this.omegga.getPlayer(name);
@@ -795,21 +1046,16 @@ class Base_wars {
 							this.omegga.whisper(name, clr.red + '<b>You don\'t have enough money to buy that weapon.</>');
 						}
 					}
-					else {
-						this.omegga.whisper(name, clr.red + '<b>That weapon doesn\'t exist.</>');
-					}
-					break;
-				case 'machine':
-					const machine = args.splice(1,args.length).join(' ');
+					//break;
+				}
+				else if(machines.filter(mcn => mcn.name === test).length > 0) {
+				//case 'machine':
+					const machine = args.join(' ');
 					if(machine == 'manual printer') {
 						this.omegga.whisper(name,clr.ylw+'<i><b>The machine is free lmao.</>');
-						break;
+						return;
 					}
 					const isvalid = machines.filter(mcn => mcn.name === machine);
-					if(isvalid.length === 0) {
-						this.omegga.whisper(name,clr.red+'<b>That machine doesn\'t exist,</>');
-						break;
-					}
 					const data = isvalid[0].data.ConsoleTag.split(' ');
 					const player = await this.omegga.getPlayer(name);
 					let invn = await this.store.get(player.id);
@@ -821,11 +1067,14 @@ class Base_wars {
 					invn.machines.push(machine);
 					this.store.set(player.id,invn);
 					this.omegga.whisper(name, '<b>You have bought: ' + clr.ylw + machine + '</color>.</>');
-					break;
-				default:
-					this.omegga.whisper(name,clr.red+'<b>You have to input weapon/machine before typing in what you want to buy.</>');
-					break;
-			}
+					//break;
+				}
+				else {
+				//default:
+					this.omegga.whisper(name,clr.red+'<b>That item doesn\'t exist.</>');
+					//break;
+				}
+			//}
 		})
 		.on('leave', async player => {
 			if(online.indexOf(player.name) > -1){
@@ -838,8 +1087,11 @@ class Base_wars {
 				this.store.set(player.id,{inv: ['pistol','impact grenade'], money: 0, base: [], selected: ['pistol','impact grenade'], machines: [], charm: ''});
 				this.omegga.whisper(player.name,clr.grn+'<b>You\'re new so you recieved basic guns. Please use /basewars for basic info.</>')
 			}
-			const invn = await this.store.get(player.id);
+			let invn = await this.store.get(player.id);
 			online.push(player.name);
+			if(!keys.includes("Trusted")){
+				this.store.set("Trusted",[]);
+			}
 			if(enablechecker) {
 				this.omegga.getPlayer(player.id).setTeam(1);
 				this.omegga.getPlayer(player.id).giveItem(weapons[invn.selected[0]]);
@@ -857,17 +1109,29 @@ class Base_wars {
 		.on('cmd:setspawn', async name => {
 			const haskey = await this.store.keys();
 			const player = await this.omegga.getPlayer(name);
+			let trust = await this.store.get("Trusted");
 			if(haskey.includes(player.id)) {
 				const pos = await this.omegga.getPlayer(name).getPosition();
 				const cores = basecores.filter(brick => brick.components.BCD_Interact.ConsoleTag.indexOf(name) === -1 && Math.sqrt(
 				(pos[0] - brick.position[0]) * (pos[0] - brick.position[0]) +
 				(pos[1] - brick.position[1]) * (pos[1] - brick.position[1]) +
 				(pos[2] - brick.position[2]) * (pos[2] - brick.position[2])
-				) < 640);
-				console.log(cores[0]);
+				) < 1280);
 				if(cores.length > 0) {
-					this.omegga.whisper(name, clr.red + '<b>You cannot set spawn near base cores.</>');
-					return;
+					let canset = false;
+					for(var cr in cores){
+						const core = cores[cr].components.BCD_Interact.ConsoleTag;
+						for(var trs in trust) {
+							const trusted = trust[trs];
+							if(trusted.player === core && trusted.trusts === name) {
+								canset = true;
+							}
+						}
+					}
+					if(!canset) {
+						this.omegga.whisper(name, clr.red + '<b>You cannot set spawn near base cores.</>');
+						return;
+					}
 				}
 				let invnt = await this.store.get(player.id);
 				invnt.base = [Math.floor(pos[0]),Math.floor(pos[1]),Math.floor(pos[2])];
@@ -906,6 +1170,9 @@ class Base_wars {
 									break;
 								case 'Gen':
 									this.omegga.whisper(name, '<b>' + clr.orn + machines[mcn].name + '</color>: ' + clr.ylw + '$' + clr.dgrn + data[3] + clr.slv + ' produces: ' + clr.cyn + data[4] + 'Eu</>');
+									break;
+								case 'Str':
+									this.omegga.whisper(name, '<b>' + clr.red + machines[mcn].name + '</color>: ' + clr.ylw + '$' + clr.dgrn + data[3] + clr.slv + ' damage: ' + clr.red + data[4] + clr.slv + ' bullets-per-sec: ' + clr.orn + data[2] + clr.slv + ' range: ' + clr.ylw + data[5] + ' studs' + clr.slv + ' uses: ' + clr.cyn + data[6] + 'Eu</>');
 									break;
 							}
 						}
@@ -978,7 +1245,7 @@ class Base_wars {
 					this.omegga.whisper(name, '<b>' + clr.grn + '/viewinv</color> view your inventory.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/listshop (machines/weapons)</color> list machines/weapons.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/loadout (1 - 2) (weapon)</color> set your weapon slot.</>');
-					this.omegga.whisper(name, '<b>' + clr.grn + '/buy (machine/weapon) (machine/weapon name)</color> buy a machine/weapon.</>');
+					this.omegga.whisper(name, '<b>' + clr.grn + '/buy (machine/weapon name)</color> buy a machine/weapon.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/setspawn</color> set your base spawn.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/clearspawn</color> clears your base spawn.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/place (machine name)</color> place down a machine.</>');
@@ -986,14 +1253,17 @@ class Base_wars {
 					this.omegga.whisper(name, '<b>' + clr.grn + '/placecore </color>places a core which prevents players from setting spawn at your base. You can ONLY place 1.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/removecore </color>removes a core.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/pay (money) (player)</color> gives a player money.</>');
+					this.omegga.whisper(name, '<b>' + clr.grn + '/skip</color> vote to skip the round.</>');
+					this.omegga.whisper(name, '<b>' + clr.grn + '/trust (add/remove/nothing) (player name) </color> gives/removes/views trust. Trusted users will not be damaged by your turrets and will be able to set spawn within your base core.</>');
 					break;
 				case 'machines':
 					this.omegga.whisper(name, '<size="30"><b>Machines.</>');
-					this.omegga.whisper(name, '<b>There are 2 types of machines. Printers generate money. Generators generate energy for the printers.</>');
+					this.omegga.whisper(name, '<b>There are 3 types of machines. Printers generate money. Generators generate energy for the printers.</>');
 					this.omegga.whisper(name, '<b>Generators can only work within a radius of 50 studs from printers.</>');
-					this.omegga.whisper(name, '<b>Upon being destroyed machines drop 60% of their original price as a money brick.</>');
-					this.omegga.whisper(name, '<b>Machines can ONLY generate money during fight mode and when you are online on the server.</>');
-					break;
+					this.omegga.whisper(name, '<b>Upon being destroyed machines drop 80% of their original price as a money brick.</>');
+ 					this.omegga.whisper(name, '<b>Machines can ONLY generate money during fight mode and when you are online on the server.</>');
+					this.omegga.whisper(name, '<b>Turrets kill players. All turrets consume energy like printers do. Turrets cannot shoot through walls.</>');
+ 					break;
 			}
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
@@ -1039,9 +1309,10 @@ class Base_wars {
 		for(var pl in players) {
 			online.push(players[pl].name);
 		}
-		ProjectileCheckInterval = setInterval(() => this.CheckProjectiles(enablechecker),delay);
+		ProjectileCheckInterval = setInterval(() => this.CheckProjectiles(enablechecker && online.length > 0),delay);
 		CountDownInterval = setInterval(() => this.decrement(true),60000);
-		return { registeredCommands: ['wipeall','loadout','viewinv','setspawn','clearspawn','place','buy','listshop','basewars','refund','pay','changelog','placecore','removecore'] };
+		skipnturretinterval = setInterval(() => this.skipdecrementnturrets(),1000);
+		return { registeredCommands: ['wipeall','loadout','viewinv','setspawn','clearspawn','place','buy','listshop','basewars','refund','pay','changelog','placecore','removecore','skip','trust'] };
 	}
 	async pluginEvent(event, from, ...args) {
 		if(event === 'spawn') {
@@ -1083,6 +1354,7 @@ class Base_wars {
 		}
 		clearInterval(ProjectileCheckInterval);
 		clearInterval(CountDownInterval);
+		clearInterval(skipnturretinterval);
 	}
 }
 module.exports = Base_wars;
