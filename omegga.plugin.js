@@ -584,6 +584,9 @@ class Base_wars {
 			if(data.message.indexOf('Money') === 0) {
 				const argsarray = data.message.split(' ');
 				const checklegitimacy = await this.omegga.getSaveData({center: data.position, extent: [5, 10, 2]});
+				if(checklegitimacy == null) {
+					return;
+				}
 				if(checklegitimacy.brick_owners[0].name === 'Money') {
 					let invn = await this.store.get(data.player.id);
 					invn.money += Number(argsarray[1]);
@@ -615,8 +618,7 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Fixed rocket jumper dealing damage.</> <emoji>egg</>");
-			this.omegga.whisper(name, clr.orn + "<b>Floor boundry is now 0.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Possibly fixed money crashing the plugin when picked up.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
 		.on('cmd:placecore', async name => {
