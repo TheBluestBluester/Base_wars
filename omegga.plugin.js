@@ -224,20 +224,24 @@ class Base_wars {
 				for(var ir in inrange) {
 					const data = inrange[ir].components.BCD_Interact.ConsoleTag.split(' ');
 					const townr = data.splice(7,data.length - 7).join(' ');
+					const inrp = inrange[ir].position;
 					const generators = machinesbrs.filter(gmcn => gmcn.components.BCD_Interact.ConsoleTag.split(' ')[0] === 'Gen' && Math.sqrt(
-					(inrange[ir].position[0] - gmcn.position[0]) * (inrange[ir].position[0] - gmcn.position[0]) +
-					(inrange[ir].position[1] - gmcn.position[1]) * (inrange[ir].position[1] - gmcn.position[1]) +
-					(inrange[ir].position[2] - gmcn.position[2]) * (inrange[ir].position[2] - gmcn.position[2])
+					(inrp[0] - gmcn.position[0]) * (inrp[0] - gmcn.position[0]) +
+					(inrp[1] - gmcn.position[1]) * (inrp[1] - gmcn.position[1]) +
+					(inrp[2] - gmcn.position[2]) * (inrp[2] - gmcn.position[2])
 					) < 500 && !usedgenerators.includes(gmcn.position));
 					let energy = 0;
 					const trust = await this.store.get("Trusted");
 					let notdamage = false;
-					for(var gen in generators) {
+					for(var gen=0;gen<generators.length;gen++) {
 						const gdata = generators[gen].components.BCD_Interact.ConsoleTag.split(' ');
 						const gpname = gdata.splice(5,data.length - 5).join(' ');
 						if(townr === gpname && energy < Number(data[6])) {
 							energy += Number(gdata[4]);
 							usedgenerators.push(generators[gen].position);
+						}
+						if(energy >= Number(data[6])) {
+							gen = generators.length;
 						}
 					}
 					if(energy >= Number(data[6])) {
@@ -250,19 +254,19 @@ class Base_wars {
 							}
 						}
 						const disttopl = Math.sqrt(
-						(ppos[0] - inrange[ir].position[0]) * (ppos[0] - inrange[ir].position[0]) +
-						(ppos[1] - inrange[ir].position[1]) * (ppos[1] - inrange[ir].position[1]) +
-						(ppos[2] - inrange[ir].position[2]) * (ppos[2] - inrange[ir].position[2])
+						(ppos[0] - inrp[0]) * (ppos[0] - inrp[0]) +
+						(ppos[1] - inrp[1]) * (ppos[1] - inrp[1]) +
+						(ppos[2] - inrp[2]) * (ppos[2] - inrp[2])
 						);
 						if(townr != online[pl] && !notdamage) {
-							let brs = await this.omegga.getSaveData({center: inrange[ir].position, extent: [turretrange,turretrange,turretrange]});
+							let brs = await this.omegga.getSaveData({center: inrp, extent: [turretrange,turretrange,turretrange]});
 							let canshoot = true;
 							let hitbrick = [];
 							if(brs != null) {
-								const yaw = Math.atan2(ppos[1] - inrange[ir].position[1],ppos[0] - inrange[ir].position[0]) * 180 / Math.PI;
+								const yaw = Math.atan2(ppos[1] - inrp[1],ppos[0] - inrp[0]) * 180 / Math.PI;
 								const distl = Math.sqrt(
-								(ppos[0] - inrange[ir].position[0]) * (ppos[0] - inrange[ir].position[0]) +
-								(ppos[1] - inrange[ir].position[1]) * (ppos[1] - inrange[ir].position[1])
+								(ppos[0] - inrange[ir].position[0]) * (ppos[0] - inrp[0]) +
+								(ppos[1] - inrange[ir].position[1]) * (ppos[1] - inrp[1])
 								);
 								const pitch = Math.atan2(ppos[2] - inrange[ir].position[2],distl) * 180 / Math.PI;
 								const deg2rad = Math.PI / 180;
@@ -625,11 +629,11 @@ class Base_wars {
 		this.initializemachines();
 		weapons = await weplist.list()
 		specials = await speciallist.list();
-		
+		/*
 		this.omegga.on('cmd:enable', async name => {
 			this.modetoggle(name);
 		})
-		/*
+		
 		.on('cmd:test', async player => {
 			this.runmachines();
 		})
@@ -829,12 +833,7 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Added /skip. /skip lets you vote to skip the current round. People will have 30 seconds to vote when it begins. /skip has a cooldown of 30 seconds.</>");
-			this.omegga.whisper(name, clr.orn + "<b>You now get taxed for going over a certain brick limit each minute, during fight mode and when only online. The amount that you get taxed will depend on how much  you went over the brick limit devided by 6. By default the brick limit is " + clr.ylw + '5000' + clr.orn + '.</>');
-			this.omegga.whisper(name, clr.orn + "<b>Added " + clr.red + 'turrets' + clr.orn + '. Everything about turrets can be found in /basewars machines.</>');
-			this.omegga.whisper(name, clr.orn + "<b>Extended base core range to a radius of 128 studs.</>");
-			this.omegga.whisper(name, clr.orn + "<b>/buy weapon and /buy machine commands are now merged. /basewars commands should show that.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Added trust commands. You can view them in /basewars commands.</>");
+			this.omegga.whisper(name, clr.orn + "<b>/listshop now requires to you to input the page number. That was made to prevent crashes.</>");
 			this.omegga.whisper(name, clr.orn + "<b>Removed darbot.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
@@ -1153,18 +1152,23 @@ class Base_wars {
 			}
 		})
 		.on('cmd:listshop', async (name, ...args) => {
+			const page = Math.abs(args[1]);
+			if(isNaN(page)) {
+				this.omegga.whisper(name, clr.red + '<b>You need to input page number..</>');
+				return;
+			}
 			switch (args[0])
 			{
 				case 'weapons':
 					this.omegga.whisper(name, "<b>Weapons --------------" + clr.end);
-					for(var w in shoplist) {
+					for(var w=page * 8;w<shoplist.length && w < (page + 1) * 8;w++) {
 						this.omegga.whisper(name,'<b>' + clr.orn + shoplist[w].weapon + '</color>: ' + clr.ylw + '$' + clr.dgrn + shoplist[w].price + '</>');
 					}
 					this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 					break;
 				case 'machines':
 					this.omegga.whisper(name, "<b>Machines --------------" + clr.end);
-					for(var mcn in machines) {
+					for(var mcn=page * 8;mcn<machines.length && mcn < (page + 1) * 8;mcn++) {
 						const data = machines[mcn].data.ConsoleTag.split(' ');
 						if(!data.includes('Manual')) {
 							switch(data[0]) {
@@ -1246,7 +1250,7 @@ class Base_wars {
 					this.omegga.whisper(name, '<size="30"><b>Commands.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/basewars</color> info about Base wars.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/viewinv</color> view your inventory.</>');
-					this.omegga.whisper(name, '<b>' + clr.grn + '/listshop (machines/weapons)</color> list machines/weapons.</>');
+					this.omegga.whisper(name, '<b>' + clr.grn + '/listshop (machines/weapons) (page number)</color> list machines/weapons.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/loadout (1 - 2) (weapon)</color> set your weapon slot.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/buy (machine/weapon name)</color> buy a machine/weapon.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/setspawn</color> set your base spawn.</>');
