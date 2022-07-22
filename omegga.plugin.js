@@ -129,11 +129,24 @@ class Base_wars {
 			timeoutDelay: 90,
 			bundle: true
 			});
+			// Gets BP_PlayerState_C which is used to get the player.
+			const projtype = outer.substr(0,outer.indexOf('C_') + 1);
+			let plstate = await this.omegga.addWatcher(new RegExp(`BP_PlayerState_C`), {
+			exec: () =>
+			this.omegga.writeln(
+				`GetAll ${projtype} InstigatorState`
+			),
+			timeoutDelay: 90,
+			bundle: true
+			});
+			if(plstate[0] == null) {return;}
+			let bpstate = plstate[0].input;
+			bpstate = bpstate.substr(bpstate.indexOf('PersistentLevel.BP_PlayerState_C_') + 16, 27);
 			if(projrot[0] == null) {return;}
 			pos = projectiles[0].groups;
 			rot = projrot[0].groups;
 			const projname = projrot[0].input.substr(projrot[0].input.indexOf('Projectile_') + 11, projrot[0].input.indexOf('_C_')-projrot[0].input.indexOf('Projectile_')-11);
-			this.raycast(pos, rot, projname);
+			this.raycast(pos, rot, projname, bpstate);
 		}
 		else if(!e) {
 			e = true;
@@ -376,7 +389,7 @@ class Base_wars {
 		}
 	}
 	
-	async raycast(pos, rot, type) {
+	async raycast(pos, rot, type, playerstate) {
 		let brs = await this.omegga.getSaveData({center: [pos.x,pos.y,pos.z], extent: [projrange,projrange,projrange]});
 		if(brs == null) {return;}
 		const yaw = Number(rot.yaw);
@@ -474,17 +487,25 @@ class Base_wars {
 					let mmcnd = moneymcn.components.BCD_Interact.ConsoleTag.split(' ');
 					mmcnd[2] = Number(mmcnd[2]) - projdamage;
 					if(Number(mmcnd[2]) > 0) {
+						this.omegga.middlePrint(playerstate,'<b>Machine health: ' + mmcnd[2] + '</>');
 						machinesbrs[mcn].components.BCD_Interact.ConsoleTag = mmcnd.join(' ');
 						isdamaged = false;
 					}
 					else {
 					if(mmcnd[3] > 0) {
+						this.omegga.middlePrint(playerstate,clr.ylw + '<b>$' + clr.dgrn + Math.floor(Number(mmcnd[3]) * 0.8) + '</>');
+						const powner = await this.omegga.getPlayer(playerstate);
+						let invn = await this.store.get(powner.id);
+						invn.money += Math.floor(Number(mmcnd[3]) * 0.8);
+						this.store.set(powner.id, invn);
+						/*
 						moneybrick.components.BCD_Interact.ConsoleTag = 'Money ' + Math.floor(Number(mmcnd[3]) * 0.8);
 						const toplace =  {...moneybrs, bricks: [moneybrick], brick_owners : [{
 						id: '00000000-0000-0000-0000-000000000080',
 						name: 'Money',
 						bricks: 0}]};
 						this.omegga.loadSaveData(toplace,{quiet: true});
+						*/
 					}
 					let pname = '';
 					if(mmcnd.includes('Printer')) {
@@ -629,11 +650,11 @@ class Base_wars {
 		this.initializemachines();
 		weapons = await weplist.list()
 		specials = await speciallist.list();
-		/*
+		
 		this.omegga.on('cmd:enable', async name => {
 			this.modetoggle(name);
 		})
-		
+		/*
 		.on('cmd:test', async player => {
 			this.runmachines();
 		})
@@ -834,6 +855,9 @@ class Base_wars {
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
 			this.omegga.whisper(name, clr.orn + "<b>/listshop now requires to you to input the page number. That was made to prevent crashes.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Upgraded the projectile checker which allows for other changes that were made.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Money now gets put directly into your inventory instead of spawning as a brick infront of your face.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Machines now display how much of hp they have left when shot.</>");
 			this.omegga.whisper(name, clr.orn + "<b>Removed darbot.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
