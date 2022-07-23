@@ -169,6 +169,18 @@ class Base_wars {
 	
 	async runmachines() {
 		let usedgenerators = [];
+		const toplace =  {...moneybrs, bricks: basecores, brick_owners : [{
+		id: '00000000-0000-0000-0000-000000000040',
+		name: 'BaseCore',
+		bricks: 0}]};
+		for(var brk in toplace.bricks) {
+			let brick = toplace.bricks[brk];
+			brick.owner_index = 1;
+			toplace.bricks[brk] = brick;
+		}
+		if(toplace.bricks.length > 0) {
+			setTimeout(() => this.omegga.loadSaveData(toplace,{quiet: true}),1000);
+		}
 		if(machinesbrs.length === 0) {
 			return;
 		}
@@ -211,14 +223,6 @@ class Base_wars {
 			machinestoreload.bricks = machinesbrs;
 			this.omegga.loadSaveData(machinestoreload,{quiet: true});
 		}
-		const coreplace = {...corebrs, bricks: basecores, brick_owners: [{
-			id: '00000000-0000-0000-0000-000000000040',
-			name: 'BaseCore',
-			bricks: 0
-		}]};
-		if(basecores.length > 0) {
-			this.omegga.loadSaveData(coreplace,{quiet: true});
-		}
 		
 	}
 	
@@ -228,12 +232,25 @@ class Base_wars {
 		for(var pl in online) {
 			const player = await this.omegga.getPlayer(online[pl]);
 			const ppos = await player.getPosition();
-			const inrange = turrets.filter(smcn => Math.sqrt(
-			(ppos[0] - smcn.position[0]) * (ppos[0] - smcn.position[0]) +
-			(ppos[1] - smcn.position[1]) * (ppos[1] - smcn.position[1]) +
-			(ppos[2] - smcn.position[2]) * (ppos[2] - smcn.position[2])
-			) < Number(smcn.components.BCD_Interact.ConsoleTag.split(' ')[5]) * 10);
-			if(inrange.length > 0) {
+			const inrange = [];
+			let prevdist = 100000;
+			for(var turt in turrets) {
+				const smcn = turrets[turt];
+				const data = smcn.components.BCD_Interact.ConsoleTag.split(' ');
+				const townr = data.splice(7,data.length - 7).join(' ');
+				const dist = Math.sqrt(
+				(ppos[0] - smcn.position[0]) * (ppos[0] - smcn.position[0]) +
+				(ppos[1] - smcn.position[1]) * (ppos[1] - smcn.position[1]) +
+				(ppos[2] - smcn.position[2]) * (ppos[2] - smcn.position[2])
+				);
+				if(dist < Number(data[5]) * 10 && dist < prevdist&& townr != online[pl]) {
+					inrange[0] = smcn;
+					prevdist = dist;
+				}
+				
+			}
+			const dead = await player.isDead();
+			if(inrange.length > 0 && !dead) {
 				for(var ir in inrange) {
 					const data = inrange[ir].components.BCD_Interact.ConsoleTag.split(' ');
 					const townr = data.splice(7,data.length - 7).join(' ');
@@ -593,6 +610,8 @@ class Base_wars {
 			let bricjowners = brs.brick_owners.filter(owner => online.includes(owner.name));
 			machinesbrs = brs;
 			machinesbrs = machinesbrs.bricks.filter(machine => 'BCD_Interact' in machine.components && machinesbrs.brick_owners[machine.owner_index - 1].name.indexOf('MCN') === 0 && Math.abs(machine.position[0]) < XYBoundry * 10 && Math.abs(machine.position[1]) < XYBoundry * 10 && machine.position[2] < ZBoundry * 10 && machine.position[2] >= 0);
+			const cores = brs.bricks.filter(brick => 'BCD_Interact' in brick.components && brs.brick_owners[brick.owner_index - 1].name.indexOf('BaseCore') !== -1);
+			basecores = cores;
 			brs.bricks = brs.bricks.filter(brick => 'BCD_ItemSpawn' in brick.components);
 			for(var br in brs.bricks) {
 				const brick = brs.bricks[br];
@@ -654,11 +673,11 @@ class Base_wars {
 		this.omegga.on('cmd:enable', async name => {
 			this.modetoggle(name);
 		})
-		/*
+		
 		.on('cmd:test', async player => {
 			this.runmachines();
 		})
-		
+		/*
 		this.omegga.on('cmd:test2', async name => {
 			this.omegga.getPlayer(name).damage(10);
 			console.log("test");
@@ -854,10 +873,9 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>/listshop now requires to you to input the page number. That was made to prevent crashes.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Upgraded the projectile checker which allows for other changes that were made.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Money now gets put directly into your inventory instead of spawning as a brick infront of your face.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Machines now display how much of hp they have left when shot.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Players can only be targeted by 1 closest turret. This was made to improve perfomance.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Hopefully fixed base cores not being indestructable.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Extended sniper turret range.</>");
 			this.omegga.whisper(name, clr.orn + "<b>Removed darbot.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
