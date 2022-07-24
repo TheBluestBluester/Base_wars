@@ -244,8 +244,9 @@ class Base_wars {
 				(ppos[2] - smcn.position[2]) * (ppos[2] - smcn.position[2])
 				);
 				if(dist < Number(data[5]) * 10 && dist < prevdist&& townr != online[pl]) {
-					inrange[0] = smcn;
-					prevdist = dist;
+					//inrange[0] = smcn;
+					//prevdist = dist;
+					inrange.push(smcn);
 				}
 				
 			}
@@ -289,6 +290,7 @@ class Base_wars {
 						(ppos[2] - inrp[2]) * (ppos[2] - inrp[2])
 						);
 						if(!notdamage) {
+							/*
 							let brs = await this.omegga.getSaveData({center: inrp, extent: [turretrange,turretrange,turretrange]});
 							let canshoot = true;
 							let hitbrick = [];
@@ -336,11 +338,11 @@ class Base_wars {
 										br = {p: bpos, s: size};
 									}
 									if(br !== 0) {
-										if(br.p[0] !== inrange[ir].position[0] && br.p[1] !== inrange[ir].position[1] && br.p[2] !== inrange[ir].position[2]) {
+										if(br.p[0] !== inrp[0] && br.p[1] !== inrp[1] && br.p[2] !== inrp[2]) {
 											const disttobr = Math.sqrt(
-											(br.p[0] - inrange[ir].position[0]) * (br.p[0] - inrange[ir].position[0]) +
-											(br.p[1] - inrange[ir].position[1]) * (br.p[1] - inrange[ir].position[1]) +
-											(br.p[2] - inrange[ir].position[2]) * (br.p[2] - inrange[ir].position[2])
+											(br.p[0] - inrp[0]) * (br.p[0] - inrp[0]) +
+											(br.p[1] - inrp[1]) * (br.p[1] - inrp[1]) +
+											(br.p[2] - inrp[2]) * (br.p[2] - inrp[2])
 											);
 											if(disttobr < disttopl) {
 												canshoot = false;
@@ -350,7 +352,7 @@ class Base_wars {
 									}
 								}
 							}
-							/*
+							
 							for(var b=0;b<hitbrick.length;b++) {
 								const br = hitbrick[b];
 								if(br.p[0] !== inrange[ir].position[0] && br.p[1] !== inrange[ir].position[1] && br.p[2] !== inrange[ir].position[2]) {
@@ -366,10 +368,11 @@ class Base_wars {
 								}
 							}
 							*/
-							if(canshoot) {
+							//if(canshoot) {
 								const interval = setInterval(() => this.turretdamageplayer(player,damage), Math.floor(1000 / bps));
+								this.omegga.whisper(player.name, clr.red + "<b>You are being shot by a turret!</>");
 								setTimeout(() => clearInterval(interval), 999);
-							}
+							//}
 						}
 					}
 				}
@@ -820,7 +823,7 @@ class Base_wars {
 			}
 		})
 		.on('cmd:pay', async (name, ...args) => {
-			const money = Number(args[0]);
+			const money = Math.ceil(Number(args[0]));
 			args.splice(0,1);
 			const player = args.join(' ');
 			if(!online.includes(player)) {
@@ -888,9 +891,9 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Players can only be targeted by 1 closest turret. This was made to improve perfomance.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Hopefully fixed base cores not being indestructable.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Extended sniper turret range.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Temprorerally disable raycasting for turrets.</>");
+			this.omegga.whisper(name, clr.orn + "<b>You will recieve a message when being shot by a turret.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Money with decimanls will get rouned.</>");
 			this.omegga.whisper(name, clr.orn + "<b>Removed darbot.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
