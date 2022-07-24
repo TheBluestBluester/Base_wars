@@ -158,12 +158,14 @@ class Base_wars {
 		for(var pl in totax) {
 			const evader = totax[pl];
 			const pid = await this.omegga.getPlayer(evader.name);
+			if(pid != null) {
 			let invn = await this.store.get(pid.id);
 			invn.money -= evader.tax;
 			if(invn.money < 0) {
 				invn.money = 0;
 			}
 			this.store.set(pid.id,invn);
+			}
 		}
 	}
 	
@@ -290,7 +292,7 @@ class Base_wars {
 						(ppos[2] - inrp[2]) * (ppos[2] - inrp[2])
 						);
 						if(!notdamage) {
-							/*
+							
 							let brs = await this.omegga.getSaveData({center: inrp, extent: [turretrange,turretrange,turretrange]});
 							let canshoot = true;
 							let hitbrick = [];
@@ -352,7 +354,7 @@ class Base_wars {
 									}
 								}
 							}
-							
+							/*
 							for(var b=0;b<hitbrick.length;b++) {
 								const br = hitbrick[b];
 								if(br.p[0] !== inrange[ir].position[0] && br.p[1] !== inrange[ir].position[1] && br.p[2] !== inrange[ir].position[2]) {
@@ -368,11 +370,11 @@ class Base_wars {
 								}
 							}
 							*/
-							//if(canshoot) {
+							if(canshoot) {
 								const interval = setInterval(() => this.turretdamageplayer(player,damage), Math.floor(1000 / bps));
 								this.omegga.whisper(player.name, clr.red + "<b>You are being shot by a turret!</>");
 								setTimeout(() => clearInterval(interval), 999);
-							//}
+							}
 						}
 					}
 				}
@@ -687,7 +689,7 @@ class Base_wars {
 		this.initializemachines();
 		weapons = await weplist.list()
 		specials = await speciallist.list();
-		
+		/*
 		this.omegga.on('cmd:enable', async name => {
 			this.modetoggle(name);
 		})
@@ -695,7 +697,7 @@ class Base_wars {
 		.on('cmd:test', async player => {
 			this.runmachines();
 		})
-		/*
+		
 		this.omegga.on('cmd:test2', async name => {
 			this.omegga.getPlayer(name).damage(10);
 			console.log("test");
@@ -891,7 +893,7 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Temprorerally disable raycasting for turrets.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Fixed taxes causing a crash.</>");
 			this.omegga.whisper(name, clr.orn + "<b>You will recieve a message when being shot by a turret.</>");
 			this.omegga.whisper(name, clr.orn + "<b>Money with decimanls will get rouned.</>");
 			this.omegga.whisper(name, clr.orn + "<b>Removed darbot.</>");
