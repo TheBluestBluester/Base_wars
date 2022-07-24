@@ -45,7 +45,7 @@ let weapons;
 let specials;
 let delay = 200;
 let projrange = 800;
-let turretrange = 800;
+let turretrange = 400;
 let spawned = [];
 let e = false;
 let enablechecker = false;
@@ -227,9 +227,9 @@ class Base_wars {
 	}
 	
 	async turrethandler() {
-		let usedgenerators = [];
-		const turrets = machinesbrs.filter(smcn => smcn.components.BCD_Interact.ConsoleTag.split(' ')[0] === 'Str')
+		const turrets = machinesbrs.filter(smcn => smcn.components.BCD_Interact.ConsoleTag.indexOf('Str') !== -1)
 		for(var pl in online) {
+			let usedgenerators = [];
 			const player = await this.omegga.getPlayer(online[pl]);
 			const ppos = await player.getPosition();
 			const inrange = [];
@@ -249,8 +249,8 @@ class Base_wars {
 				}
 				
 			}
-			const dead = await player.isDead();
-			if(inrange.length > 0 && !dead) {
+			const isdead = await player.isDead();
+			if(inrange.length > 0 && !isdead) {
 				for(var ir in inrange) {
 					const data = inrange[ir].components.BCD_Interact.ConsoleTag.split(' ');
 					const townr = data.splice(7,data.length - 7).join(' ');
@@ -288,24 +288,24 @@ class Base_wars {
 						(ppos[1] - inrp[1]) * (ppos[1] - inrp[1]) +
 						(ppos[2] - inrp[2]) * (ppos[2] - inrp[2])
 						);
-						if(townr != online[pl] && !notdamage) {
+						if(!notdamage) {
 							let brs = await this.omegga.getSaveData({center: inrp, extent: [turretrange,turretrange,turretrange]});
 							let canshoot = true;
 							let hitbrick = [];
 							if(brs != null) {
 								const yaw = Math.atan2(ppos[1] - inrp[1],ppos[0] - inrp[0]) * 180 / Math.PI;
 								const distl = Math.sqrt(
-								(ppos[0] - inrange[ir].position[0]) * (ppos[0] - inrp[0]) +
-								(ppos[1] - inrange[ir].position[1]) * (ppos[1] - inrp[1])
+								(ppos[0] - inrp[0]) * (ppos[0] - inrp[0]) +
+								(ppos[1] - inrp[1]) * (ppos[1] - inrp[1])
 								);
-								const pitch = Math.atan2(ppos[2] - inrange[ir].position[2],distl) * 180 / Math.PI;
+								const pitch = Math.atan2(ppos[2] - inrp[2],distl) * 180 / Math.PI;
 								const deg2rad = Math.PI / 180;
 								let ray1 = {x: inrange[ir].position[0], y: inrange[ir].position[1], z: inrange[ir].position[2]};
-								for(var B in brs.bricks) {
+								for(var B=0;B<brs.bricks.length;B++) {
 									let ray2 = {
-									x: inrange[ir].position[0] + Math.sin((-yaw + 90) * deg2rad) * turretrange * Math.cos(pitch * deg2rad),
-									y: inrange[ir].position[1] + Math.cos((-yaw + 90) * deg2rad) * turretrange * Math.cos(pitch * deg2rad),
-									z: inrange[ir].position[2] + turretrange * Math.sin(pitch * deg2rad)
+									x: inrp[0] + Math.sin((-yaw + 90) * deg2rad) * turretrange * Math.cos(pitch * deg2rad),
+									y: inrp[1] + Math.cos((-yaw + 90) * deg2rad) * turretrange * Math.cos(pitch * deg2rad),
+									z: inrp[2] + turretrange * Math.sin(pitch * deg2rad)
 									};
 			
 									let brick = brs.bricks[B];
@@ -331,26 +331,41 @@ class Base_wars {
 									y: bpos[1] + size[1],
 									z: bpos[2] + size[2],
 									};
+									let br = 0;
 									if(await raycasttest.CheckLineBox(BP1, BP2, ray1, ray2)) {
-										hitbrick.push({p: bpos, s: size});
+										br = {p: bpos, s: size};
+									}
+									if(br !== 0) {
+										if(br.p[0] !== inrange[ir].position[0] && br.p[1] !== inrange[ir].position[1] && br.p[2] !== inrange[ir].position[2]) {
+											const disttobr = Math.sqrt(
+											(br.p[0] - inrange[ir].position[0]) * (br.p[0] - inrange[ir].position[0]) +
+											(br.p[1] - inrange[ir].position[1]) * (br.p[1] - inrange[ir].position[1]) +
+											(br.p[2] - inrange[ir].position[2]) * (br.p[2] - inrange[ir].position[2])
+											);
+											if(disttobr < disttopl) {
+												canshoot = false;
+												B = brs.bricks.length;
+											}
+										}
 									}
 								}
 							}
-							let over = false;
-							for(var b in hitbrick) {
+							/*
+							for(var b=0;b<hitbrick.length;b++) {
 								const br = hitbrick[b];
-								if(br.p[0] !== inrange[ir].position[0] && br.p[1] !== inrange[ir].position[1] && br.p[2] !== inrange[ir].position[2] && !over) {
+								if(br.p[0] !== inrange[ir].position[0] && br.p[1] !== inrange[ir].position[1] && br.p[2] !== inrange[ir].position[2]) {
 									const disttobr = Math.sqrt(
 									(br.p[0] - inrange[ir].position[0]) * (br.p[0] - inrange[ir].position[0]) +
 									(br.p[1] - inrange[ir].position[1]) * (br.p[1] - inrange[ir].position[1]) +
 									(br.p[2] - inrange[ir].position[2]) * (br.p[2] - inrange[ir].position[2])
 									);
 									if(disttobr < disttopl) {
-										over = true;
 										canshoot = false;
+										b = hitbrick.length;
 									}
 								}
 							}
+							*/
 							if(canshoot) {
 								const interval = setInterval(() => this.turretdamageplayer(player,damage), Math.floor(1000 / bps));
 								setTimeout(() => clearInterval(interval), 999);
