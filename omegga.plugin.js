@@ -292,89 +292,11 @@ class Base_wars {
 						(ppos[2] - inrp[2]) * (ppos[2] - inrp[2])
 						);
 						if(!notdamage) {
-							
-							let brs = await this.omegga.getSaveData({center: inrp, extent: [turretrange,turretrange,turretrange]});
-							let canshoot = true;
-							let hitbrick = [];
-							if(brs != null) {
-								const yaw = Math.atan2(ppos[1] - inrp[1],ppos[0] - inrp[0]) * 180 / Math.PI;
-								const distl = Math.sqrt(
-								(ppos[0] - inrp[0]) * (ppos[0] - inrp[0]) +
-								(ppos[1] - inrp[1]) * (ppos[1] - inrp[1])
-								);
-								const pitch = Math.atan2(ppos[2] - inrp[2],distl) * 180 / Math.PI;
-								const deg2rad = Math.PI / 180;
-								let ray1 = {x: inrange[ir].position[0], y: inrange[ir].position[1], z: inrange[ir].position[2]};
-								for(var B=0;B<brs.bricks.length;B++) {
-									let ray2 = {
-									x: inrp[0] + Math.sin((-yaw + 90) * deg2rad) * turretrange * Math.cos(pitch * deg2rad),
-									y: inrp[1] + Math.cos((-yaw + 90) * deg2rad) * turretrange * Math.cos(pitch * deg2rad),
-									z: inrp[2] + turretrange * Math.sin(pitch * deg2rad)
-									};
-			
-									let brick = brs.bricks[B];
-									let size = brick.size;
-									if(size[0] === 0) {
-										size = specials[brs.brick_assets[brick.asset_name_index]];
-									}
-									if(brick.rotation%2 == 1) {
-										size = [size[1],size[0],size[2]];
-									}
-									const directions = [[2,1,0],[0,2,1],[0,1,2]];
-									const brdr = Math.floor(brick.direction/2);
-									size = [size[directions[brdr][0]],size[directions[brdr][1]],size[directions[brdr][2]]];
-									brick.size = size;
-									const bpos = brick.position;
-									const BP1 = {
-									x: bpos[0] - size[0],
-									y: bpos[1] - size[1],
-									z: bpos[2] - size[2],
-									};
-									const BP2 = {
-									x: bpos[0] + size[0],
-									y: bpos[1] + size[1],
-									z: bpos[2] + size[2],
-									};
-									let br = 0;
-									if(await raycasttest.CheckLineBox(BP1, BP2, ray1, ray2)) {
-										br = {p: bpos, s: size};
-									}
-									if(br !== 0) {
-										if(br.p[0] !== inrp[0] && br.p[1] !== inrp[1] && br.p[2] !== inrp[2]) {
-											const disttobr = Math.sqrt(
-											(br.p[0] - inrp[0]) * (br.p[0] - inrp[0]) +
-											(br.p[1] - inrp[1]) * (br.p[1] - inrp[1]) +
-											(br.p[2] - inrp[2]) * (br.p[2] - inrp[2])
-											);
-											if(disttobr < disttopl) {
-												canshoot = false;
-												B = brs.bricks.length;
-											}
-										}
-									}
-								}
-							}
-							/*
-							for(var b=0;b<hitbrick.length;b++) {
-								const br = hitbrick[b];
-								if(br.p[0] !== inrange[ir].position[0] && br.p[1] !== inrange[ir].position[1] && br.p[2] !== inrange[ir].position[2]) {
-									const disttobr = Math.sqrt(
-									(br.p[0] - inrange[ir].position[0]) * (br.p[0] - inrange[ir].position[0]) +
-									(br.p[1] - inrange[ir].position[1]) * (br.p[1] - inrange[ir].position[1]) +
-									(br.p[2] - inrange[ir].position[2]) * (br.p[2] - inrange[ir].position[2])
-									);
-									if(disttobr < disttopl) {
-										canshoot = false;
-										b = hitbrick.length;
-									}
-								}
-							}
-							*/
-							if(canshoot) {
+							//if(canshoot) {
 								const interval = setInterval(() => this.turretdamageplayer(player,damage), Math.floor(1000 / bps));
-								this.omegga.whisper(player.name, clr.red + "<b>You are being shot by a turret!</>");
+								this.omegga.middlePrint(player.name, clr.red + "<b>You are being shot by a turret!</>");
 								setTimeout(() => clearInterval(interval), 999);
-							}
+							//}
 						}
 					}
 				}
@@ -893,9 +815,7 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Fixed taxes causing a crash.</>");
-			this.omegga.whisper(name, clr.orn + "<b>You will recieve a message when being shot by a turret.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Money with decimanls will get rouned.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Temproreraly disabled raycasting for turrets to save on perfomance.</>");
 			this.omegga.whisper(name, clr.orn + "<b>Removed darbot.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
