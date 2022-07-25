@@ -1,7 +1,8 @@
 const { brs } = OMEGGA_UTIL;
 const raycasttest = require('./Raycast');
 const weplist = require('./Weaponslist');
-const speciallist = require('./SpecialBrickSizeTable');	
+const speciallist = require('./SpecialBrickSizeTable');
+const turrethandle = require('./turrethandle');	
 const fs = require('fs');
 
 const clr = {
@@ -228,92 +229,13 @@ class Base_wars {
 		
 	}
 	
-	async turrethandler() {
-		const turrets = machinesbrs.filter(smcn => smcn.components.BCD_Interact.ConsoleTag.indexOf('Str') !== -1)
-		for(var pl in online) {
-			let usedgenerators = [];
-			const player = await this.omegga.getPlayer(online[pl]);
-			const ppos = await player.getPosition();
-			const inrange = [];
-			let prevdist = 100000;
-			for(var turt in turrets) {
-				const smcn = turrets[turt];
-				const data = smcn.components.BCD_Interact.ConsoleTag.split(' ');
-				const townr = data.splice(7,data.length - 7).join(' ');
-				const dist = Math.sqrt(
-				(ppos[0] - smcn.position[0]) * (ppos[0] - smcn.position[0]) +
-				(ppos[1] - smcn.position[1]) * (ppos[1] - smcn.position[1]) +
-				(ppos[2] - smcn.position[2]) * (ppos[2] - smcn.position[2])
-				);
-				if(dist < Number(data[5]) * 10 && dist < prevdist&& townr != online[pl]) {
-					//inrange[0] = smcn;
-					//prevdist = dist;
-					inrange.push(smcn);
-				}
-				
-			}
-			const isdead = await player.isDead();
-			if(inrange.length > 0 && !isdead) {
-				for(var ir in inrange) {
-					const data = inrange[ir].components.BCD_Interact.ConsoleTag.split(' ');
-					const townr = data.splice(7,data.length - 7).join(' ');
-					const inrp = inrange[ir].position;
-					const generators = machinesbrs.filter(gmcn => gmcn.components.BCD_Interact.ConsoleTag.split(' ')[0] === 'Gen' && Math.sqrt(
-					(inrp[0] - gmcn.position[0]) * (inrp[0] - gmcn.position[0]) +
-					(inrp[1] - gmcn.position[1]) * (inrp[1] - gmcn.position[1]) +
-					(inrp[2] - gmcn.position[2]) * (inrp[2] - gmcn.position[2])
-					) < 500 && !usedgenerators.includes(gmcn.position));
-					let energy = 0;
-					const trust = await this.store.get("Trusted");
-					let notdamage = false;
-					for(var gen=0;gen<generators.length;gen++) {
-						const gdata = generators[gen].components.BCD_Interact.ConsoleTag.split(' ');
-						const gpname = gdata.splice(5,data.length - 5).join(' ');
-						if(townr === gpname && energy < Number(data[6])) {
-							energy += Number(gdata[4]);
-							usedgenerators.push(generators[gen].position);
-						}
-						if(energy >= Number(data[6])) {
-							gen = generators.length;
-						}
-					}
-					if(energy >= Number(data[6])) {
-						const damage = Number(data[4]);
-						const bps = Number(data[2]);
-						for(var trs in trust) {
-							const trusted = trust[trs];
-							if(trusted.player === townr && trusted.trusts === online[pl]) {
-								notdamage = true;
-							}
-						}
-						const disttopl = Math.sqrt(
-						(ppos[0] - inrp[0]) * (ppos[0] - inrp[0]) +
-						(ppos[1] - inrp[1]) * (ppos[1] - inrp[1]) +
-						(ppos[2] - inrp[2]) * (ppos[2] - inrp[2])
-						);
-						if(!notdamage) {
-							//if(canshoot) {
-								const interval = setInterval(() => this.turretdamageplayer(player,damage), Math.floor(1000 / bps));
-								this.omegga.middlePrint(player.name, clr.red + "<b>You are being shot by a turret!</>");
-								setTimeout(() => clearInterval(interval), 999);
-							//}
-						}
-					}
-				}
-			}
-		}
-	}
-	//less lag = better so i am resorting to doing it this way
-	async turretdamageplayer(player, damage) {
-		player.damage(damage);
-	}
-	
 	async skipdecrementnturrets() {
 		if(enablechecker && online.length > 0) {
-			this.turrethandler();
+			//this.turrethandler();
+			turrethandle.turrethandler(this.omegga,online,machinesbrs,this.store,clr);
 		}
 		if(skipcooldown > 0) {
-			skipcooldown--;
+			skipcooldown -= 2;
 		}
 		if(skiptime > 0) {
 			skiptime--;
@@ -815,7 +737,7 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Temproreraly disabled raycasting for turrets to save on perfomance.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Decreased turrethandler updated rate.</>");
 			this.omegga.whisper(name, clr.orn + "<b>Removed darbot.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
@@ -1300,7 +1222,7 @@ class Base_wars {
 		}
 		ProjectileCheckInterval = setInterval(() => this.CheckProjectiles(enablechecker && online.length > 0),delay);
 		CountDownInterval = setInterval(() => this.decrement(true),60000);
-		skipnturretinterval = setInterval(() => this.skipdecrementnturrets(),1000);
+		skipnturretinterval = setInterval(() => this.skipdecrementnturrets(),2000);
 		return { registeredCommands: ['wipeall','loadout','viewinv','setspawn','clearspawn','place','buy','listshop','basewars','refund','pay','changelog','placecore','removecore','skip','trust'] };
 	}
 	async pluginEvent(event, from, ...args) {
