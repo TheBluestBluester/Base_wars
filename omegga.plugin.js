@@ -1229,6 +1229,9 @@ class Base_wars {
 		if(event === 'spawn') {
 			const player = args[0].player;
 			const invn = await this.store.get(player.id);
+			if(invn == null) {
+				return;
+			}
 			if(invn.base.length > 0) {
 				const joinedpos = (invn.base).join(' ');
 				this.omegga.writeln('Chat.Command /TP '+player.name+' ' +joinedpos+' 0');
