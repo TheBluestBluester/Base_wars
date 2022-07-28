@@ -45,17 +45,20 @@ let basecores = [];
 let weapons;
 let specials;
 let delay = 200;
-let projrange = 800;
+let projrange = 1000;
 let turretrange = 400;
 let spawned = [];
 let e = false;
 let enablechecker = false;
 let time = 10;
-let XYBoundry = 38000;
+let XYBoundry = 30000;
 let ZBoundry = 9000;
+
+//let tempbrs = [];
 
 let totax = [];
 let minbrickcount = 5000;
+let printerstore = [];
 
 let buildtime = 10;
 let fighttime = 10;
@@ -73,6 +76,8 @@ let skipcooldown = 0;
 let skiptime = 0;
 let wanttoskip = [];
 let minplayers = 0;
+
+let tick = 0;
 
 class Base_wars {
 	
@@ -179,6 +184,7 @@ class Base_wars {
 		for(var brk in toplace.bricks) {
 			let brick = toplace.bricks[brk];
 			brick.owner_index = 1;
+			brick.asset_name_index = 0;
 			toplace.bricks[brk] = brick;
 		}
 		if(toplace.bricks.length > 0) {
@@ -192,8 +198,10 @@ class Base_wars {
 			const data = mcnb.components.BCD_Interact.ConsoleTag.split(' ');
 			const pname = data.splice(6,data.length - 6).join(' ');
 			if(data[0] === 'Printer' && data[1] === 'Auto') {
-				const bpos = mcnb.position;
-				
+				let bpos = mcnb.position;
+				if(typeof bpos == 'Object') {
+					bpos =  Object.values(bpos);
+				}
 				const generators = machinesbrs.filter(gmcn => gmcn.components.BCD_Interact.ConsoleTag.split(' ')[0] === 'Gen' && Math.sqrt(
 				(bpos[0] - gmcn.position[0]) * (bpos[0] - gmcn.position[0]) +
 				(bpos[1] - gmcn.position[1]) * (bpos[1] - gmcn.position[1]) +
@@ -218,6 +226,21 @@ class Base_wars {
 						this.store.set(player.id,invn);
 						//this.omegga.whisper(pname,'You machine generated money.')
 					}
+					else {
+						let store = printerstore.filter(printer => printer.pos == bpos);
+						if(store.length > 0) {
+							store = store[0];
+							const index = printerstore.indexOf(store);
+							if(store.money < Number(data[4]) * fighttime) {
+								store.money += Number(data[4]);
+								printerstore[index] = index;
+								//console.log("test");
+							}
+						}
+						else {
+							printerstore.push({pos: Object.values(bpos), money: Number(data[4])});	
+						}
+					}
 				}
 			}
 		}
@@ -230,10 +253,14 @@ class Base_wars {
 	}
 	
 	async skipdecrementnturrets() {
-		if(enablechecker && online.length > 0) {
-			//this.turrethandler();
+		//this.turrethandler();
+		if(tick%30 == 0) {
+			this.decrement(true);
+		}
+		else if(online.length > 0 && enablechecker) {
 			turrethandle.turrethandler(this.omegga,online,machinesbrs,this.store,clr);
 		}
+		tick++;
 		if(skipcooldown > 0) {
 			skipcooldown -= 2;
 		}
@@ -272,7 +299,15 @@ class Base_wars {
 	
 	async raycast(pos, rot, type, playerstate) {
 		let brs = await this.omegga.getSaveData({center: [pos.x,pos.y,pos.z], extent: [projrange,projrange,projrange]});
+		//const bricks = tempbrs.bricks.filter(brik => brik.position[0] < (pos.x + projrange) && brik.position[0] > (pos.x - projrange) &&
+		//brik.position[1] < (pos.y + projrange) && brik.position[1] > (pos.y - projrange) &&
+		//brik.position[2] < (pos.z + projrange) && brik.position[2] > (pos.z - projrange)
+		//);
+		//console.log('test');
+		//let brs = {...tempbrs, bricks: bricks};
 		if(brs == null) {return;}
+		//if(brs.bricks.length === 0) {return;}
+		brs.bricks.length = Math.min(brs.bricks.length, 20000);
 		const yaw = Number(rot.yaw);
 		const pitch = Number(rot.pitch);
 		const deg2rad = Math.PI / 180;
@@ -290,7 +325,7 @@ class Base_wars {
 				projdamage = 8;
 				break;
 			case 'RocketLauncher':
-				projradius = 80;
+				projradius = 100;
 				projdamage = 30;
 				break;
 			case 'QuadLauncher':
@@ -374,10 +409,23 @@ class Base_wars {
 					}
 					else {
 					if(mmcnd[3] > 0) {
-						this.omegga.middlePrint(playerstate,clr.ylw + '<b>$' + clr.dgrn + Math.floor(Number(mmcnd[3]) * 0.8) + '</>');
+						let store = 0;
+						for(var prin=0;prin<printerstore.length;prin++) {
+							const printer = printerstore[prin];
+							if(printer.pos[0] == brc.p[0] && printer.pos[1] == brc.p[1] && printer.pos[2] == brc.p[2]) {
+								store = printer;
+								prin = printerstore.length;
+							}
+						}
+						let storedmoney = 0;
+						if(store != 0) {
+							storedmoney = store.money;
+							printerstore.splice(printerstore.indexOf(store),1);
+						}
+						this.omegga.middlePrint(playerstate,clr.ylw + '<b>$' + clr.dgrn + Math.floor((Number(mmcnd[3]) + storedmoney) * 0.8) + '</>');
 						const powner = await this.omegga.getPlayer(playerstate);
 						let invn = await this.store.get(powner.id);
-						invn.money += Math.floor(Number(mmcnd[3]) * 0.8);
+						invn.money += Math.floor((Number(mmcnd[3]) + storedmoney) * 0.8);
 						this.store.set(powner.id, invn);
 						/*
 						moneybrick.components.BCD_Interact.ConsoleTag = 'Money ' + Math.floor(Number(mmcnd[3]) * 0.8);
@@ -409,6 +457,10 @@ class Base_wars {
 				}
 			}
 			if(isdamaged) {
+				//tempbrs.bricks = tempbrs.bricks.filter(brik => brik.position[0] >= (brc.p[0] + brc.s[0]) || brik.position[0] <= (brc.p[0] - brc.s[0]) ||
+				//brik.position[1] >= (brc.p[1] + brc.s[1]) || brik.position[1] <= (brc.p[1] - brc.s[1]) ||
+				//brik.position[2] >= (brc.p[2] + brc.s[2]) || brik.position[2] <= (brc.p[2] - brc.s[2])
+				//);
 				this.omegga.clearRegion({center: brc.p, extent: brc.s});
 			}
 		}
@@ -471,6 +523,7 @@ class Base_wars {
 			}
 			let brs = await this.omegga.getSaveData();
 			if(brs == null) {return;}
+			//tempbrs = brs;
 			let bricjowners = brs.brick_owners.filter(owner => online.includes(owner.name));
 			machinesbrs = brs;
 			machinesbrs = machinesbrs.bricks.filter(machine => 'BCD_Interact' in machine.components && machinesbrs.brick_owners[machine.owner_index - 1].name.indexOf('MCN') === 0 && Math.abs(machine.position[0]) < XYBoundry * 10 && Math.abs(machine.position[1]) < XYBoundry * 10 && machine.position[2] < ZBoundry * 10 && machine.position[2] >= 0);
@@ -491,7 +544,7 @@ class Base_wars {
 			time = fighttime;
 		}
 		else {
-			const players = this.omegga.getPlayers();
+			//const players = this.omegga.getPlayers();
 			for(var pl in players) {
 				const player = players[pl];
 				this.omegga.getPlayer(player.id).setTeam(0);
@@ -545,6 +598,10 @@ class Base_wars {
 		this.omegga.on('cmd:test2', async name => {
 			this.omegga.getPlayer(name).damage(10);
 			console.log("test");
+		});
+		
+		this.omegga.on('cmd:lt', async name => {
+			this.omegga.whisper(name,'test');
 		});
 		*/
 		this.omegga.on('cmd:place', async (name, ...args) => {
@@ -700,6 +757,7 @@ class Base_wars {
 			this.omegga.whisper(player, '<b>You have recieved ' + clr.ylw + '$' + clr.dgrn + money + '</></><b> from ' + clr.ylw + name + '</><b>.</>');
 		})
 		.on('interact', async data => {
+			/*
 			if(data.message.indexOf('Money') === 0) {
 				const argsarray = data.message.split(' ');
 				const checklegitimacy = await this.omegga.getSaveData({center: data.position, extent: [5, 10, 2]});
@@ -715,10 +773,12 @@ class Base_wars {
 				}
 				return;
 			}
+			*/
 			const checklegitimacy = machinesbrs.filter(brick => brick.position.join(' ') === data.position.join(' '));
 			if(checklegitimacy.length === 0) { return; }
 			const argsarray = data.message.split(' ');
-			if(argsarray[4] === data.player.name && !mcntimeout.includes(data.player.id)) {
+			if(!mcntimeout.includes(data.player.id)) {
+			if(argsarray[4] === data.player.name) {
 				if(!enablechecker) {
 					this.omegga.middlePrint(data.player.name,clr.red+'<b>Printers can only work during fight mode.</>');
 					return;
@@ -731,13 +791,38 @@ class Base_wars {
 					setTimeout(() => mcntimeout.splice(mcntimeout.indexOf(data.player.id),1), 5000);
 				}
 			}
-			else if(mcntimeout.includes(data.player.id)) {
+			else if(argsarray[6] === data.player.name) {
+				if(argsarray[0] === 'Printer' && argsarray[1] === 'Auto') {
+					const prpos = data.position;
+					let store = 0;
+					for(var prin=0;prin<printerstore.length;prin++) {
+						const printer = printerstore[prin];
+						if(printer.pos.join(' ') === prpos.join(' ')) {
+							store = printer;
+							prin = printerstore.length;
+						}
+					}
+					if(store != 0) {
+						let invn = await this.store.get(data.player.id);
+						invn.money += store.money;
+						this.omegga.middlePrint(data.player.id,clr.ylw + '<b>$' + clr.dgrn + store.money + '</>');
+						printerstore.splice(printerstore.indexOf(store),1);
+						this.store.set(data.player.id,invn);
+						mcntimeout.push(data.player.id);
+						setTimeout(() => mcntimeout.splice(mcntimeout.indexOf(data.player.id),1), 5000);
+					}
+				}
+			}
+			}
+			else {
 				this.omegga.middlePrint(data.player.name,clr.red+'<b>You need to wait 5 seconds before using this machine again.</>');
 			}
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Decreased turrethandler updated rate.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Decreased XY boundry limit to 30k studs.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Printers will now generate up to a certain amount of money when you are offline. The amount depends on how much printer produces and the length of a fight round. To collect money that is stored in one click the printer. If the printer is destroyed it will drop the stored money.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Optimization attempts.</>");
 			this.omegga.whisper(name, clr.orn + "<b>Removed darbot.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
@@ -1211,17 +1296,17 @@ class Base_wars {
 				this.omegga.whisper(name, 'Everyone\'s progress has been wiped.')
 			}
 		});
-		let cores = await this.omegga.getSaveData();
-		if(cores != null) {
-			cores = cores.bricks.filter(brick => 'BCD_Interact' in brick.components && cores.brick_owners[brick.owner_index - 1].name.indexOf('BaseCore') === 0);
-			basecores = cores;
+		let brs = await this.omegga.getSaveData();
+		if(brs != null) {
+			brs = brs.bricks.filter(brick => 'BCD_Interact' in brick.components && brs.brick_owners[brick.owner_index - 1].name.indexOf('BaseCore') === 0);
+			basecores = brs;
 		}
 		const players = await this.omegga.getPlayers();
 		for(var pl in players) {
 			online.push(players[pl].name);
 		}
 		ProjectileCheckInterval = setInterval(() => this.CheckProjectiles(enablechecker && online.length > 0),delay);
-		CountDownInterval = setInterval(() => this.decrement(true),60000);
+		//CountDownInterval = setInterval(() => this.decrement(true),60000);
 		skipnturretinterval = setInterval(() => this.skipdecrementnturrets(),2000);
 		return { registeredCommands: ['wipeall','loadout','viewinv','setspawn','clearspawn','place','buy','listshop','basewars','refund','pay','changelog','placecore','removecore','skip','trust'] };
 	}
