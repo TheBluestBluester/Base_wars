@@ -54,7 +54,7 @@ let time = 10;
 let XYBoundry = 30000;
 let ZBoundry = 9000;
 
-//let tempbrs = [];
+let finished = true;
 
 let totax = [];
 let minbrickcount = 5000;
@@ -177,6 +177,7 @@ class Base_wars {
 	}
 	
 	async runmachines() {
+		finished = false;
 		let usedgenerators = [];
 		//let empty = false;
 		const toplace =  {...moneybrs, bricks: basecores, brick_owners : [{
@@ -263,7 +264,7 @@ class Base_wars {
 			machinestoreload.bricks = machinesbrs;
 			this.omegga.loadSaveData(machinestoreload,{quiet: true});
 		}
-		
+		finished = true;
 	}
 	
 	async skipdecrementnturrets() {
@@ -271,8 +272,8 @@ class Base_wars {
 		if(tick%30 == 0) {
 			this.decrement(true);
 		}
-		else if(online.length > 0 && enablechecker) {
-			turrethandle.turrethandler(this.omegga,online,machinesbrs,this.store,clr);
+		else if(online.length > 0 && enablechecker && finished) {
+			turrethandle.turrethandler(this.omegga,online,machinesbrs,this.store,clr).catch();
 		}
 		tick++;
 		if(skipcooldown > 0) {
@@ -289,7 +290,7 @@ class Base_wars {
 	}
 	
 	async decrement(enabled) {
-		if(enablechecker) {
+		if(enablechecker && finished) {
 			this.runmachines();
 			this.tax();
 		}
@@ -524,6 +525,7 @@ class Base_wars {
 	}
 	
 	async modetoggle(name) {
+		finished = false;
 		enablechecker = !enablechecker;
 		const players = this.omegga.getPlayers();
 		if(enablechecker) {
@@ -573,6 +575,7 @@ class Base_wars {
 			this.omegga.broadcast("<b>You have " + buildtime + " minutes of build time.</>");
 			time = buildtime;
 		}
+		finished = true;
 	}
 	
 	async initializemachines() {
@@ -626,26 +629,35 @@ class Base_wars {
 			this.omegga.getPlayer(name).damage(10);
 			console.log("test");
 		});
-		
-		this.omegga.on('cmd:lt', async name => {
-			this.omegga.whisper(name,'test');
-		});
 		*/
+		this.omegga.on('cmd:lt', async name => {
+			const br = await this.omegga.getSaveData();
+			console.log(br.bricks[0]);
+		});
+		
 		this.omegga.on('cmd:place', async (name, ...args) => {
 			const mcntoplace = args.join(' ');
 			let machinert = machines.filter(mcn => mcn.name === mcntoplace);
+			let armorrt = armorlist.filter(arm => arm.name === mcntoplace);
 			const player = await this.omegga.getPlayer(name);
 			const ppos = await player.getPosition();
 			let nearbybricks = await this.omegga.getSaveData({center: [Math.floor(ppos[0]), Math.floor(ppos[1]), Math.floor(ppos[2])], extent: [projrange,projrange,projrange]});
 			let invn = await this.store.get(player.id);
-			if(machinert.length > 0) {
+			if(machinert.length > 0 || armorrt.length > 0) {
 				if(!(invn.machines.includes(mcntoplace) || mcntoplace === 'manual printer')) {
 					this.omegga.whisper(name, clr.red+'<b>You don\'t have that machine.</>');
 					return;
 				}
 				machinert = machinert[0];
+				armorrt = armorrt[0];
 				// VVV i will not forgive javascript for this
-				const mcnbrs = JSON.parse(JSON.stringify(machinert.brs));
+				let mcnbrs;
+				if(machinert != null) {
+					mcnbrs = JSON.parse(JSON.stringify(machinert.brs));
+				}
+				else {
+					mcnbrs = JSON.parse(JSON.stringify(armorrt.brs));
+				}
 				mcnbrs.brick_owners = [{
 					id: '00000000-0000-0000-0000-000000000060',
 					name: 'MCN',
@@ -663,7 +675,17 @@ class Base_wars {
 					let brick = mcnbrs.bricks[b];
 					if('components' in brick) {
 						if('BCD_Interact' in brick.components) {
-							brick.components.BCD_Interact.ConsoleTag = brick.components.BCD_Interact.ConsoleTag + ' ' + name;
+							if(args.includes('Armor')) {
+								mcnbrs.brick_owners = [{
+									id: '00000000-0000-0000-0000-000000000120',
+									name: 'Armor',
+									bricks: 0
+								}];
+								brick.components = {};
+							}
+							else {
+								brick.components.BCD_Interact.ConsoleTag = brick.components.BCD_Interact.ConsoleTag + ' ' + name;
+							}
 							mcnbrs.bricks[b] = brick;
 						}
 					}
@@ -863,8 +885,7 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Clicking on machines that arent yours will display their owner.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Fixed machines not storing money properly.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Fixed the plugin crashing for the final time. Hopefully...</>");
 			this.omegga.whisper(name, clr.orn + "<b>Removed darbot.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
@@ -1099,6 +1120,22 @@ class Base_wars {
 					this.omegga.whisper(name, '<b>You have bought: ' + clr.ylw + machine + '</color>.</>');
 					//break;
 				}
+				else if(armorlist.filter(arm => arm.name === test).length > 0) {
+					const armor = args.join(' ');
+					const isvalid = armorlist.filter(arm => arm.name === armor);
+					const data = isvalid[0].data.ConsoleTag.split(' ');
+					const player = await this.omegga.getPlayer(name);
+					let invn = await this.store.get(player.id);
+					if(invn.money < data[3]) {
+						this.omegga.whisper(name, clr.red + '<b>You don\'t have enough money to buy this armor brick.</>');
+						return;
+					}
+					invn.money -= Number(data[3]);
+					invn.machines.push(armor);
+					this.store.set(player.id,invn);
+					this.omegga.whisper(name, '<b>You have bought: ' + clr.ylw + armor + '</color>.</>');
+					//break;
+				}
 				else {
 				//default:
 					this.omegga.whisper(name,clr.red+'<b>That item doesn\'t exist.</>');
@@ -1182,7 +1219,7 @@ class Base_wars {
 		.on('cmd:listshop', async (name, ...args) => {
 			const page = Math.abs(args[1]);
 			if(isNaN(page)) {
-				this.omegga.whisper(name, clr.red + '<b>You need to input page number..</>');
+				this.omegga.whisper(name, clr.red + '<b>You need to input page number.</>');
 				return;
 			}
 			switch (args[0])
@@ -1210,6 +1247,16 @@ class Base_wars {
 									this.omegga.whisper(name, '<b>' + clr.red + machines[mcn].name + '</color>: ' + clr.ylw + '$' + clr.dgrn + data[3] + clr.slv + ' damage: ' + clr.red + data[4] + clr.slv + ' bullets-per-sec: ' + clr.orn + data[2] + clr.slv + ' range: ' + clr.ylw + data[5] + ' studs' + clr.slv + ' uses: ' + clr.cyn + data[6] + 'Eu</>');
 									break;
 							}
+						}
+					}
+					this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
+					break;
+				case 'armor':
+					this.omegga.whisper(name, "<b>Armor --------------" + clr.end);
+					for(var arm=page * 8;arm<armorlist.length && arm < (page + 1) * 8;arm++) {
+						const data = armorlist[arm].data.ConsoleTag.split(' ');
+						if(!data.includes('Manual')) {
+							this.omegga.whisper(name, '<b>' + clr.cyn + armorlist[arm].name + '</color>: ' + clr.ylw + '$' + clr.dgrn + data[3] + clr.slv + ' resistance: ' + clr.orn + data[1] + '</>');
 						}
 					}
 					this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
@@ -1391,7 +1438,7 @@ class Base_wars {
 			deathevents.emitPlugin('unsubscribe');
 		}
 		clearInterval(ProjectileCheckInterval);
-		clearInterval(CountDownInterval);
+		//clearInterval(CountDownInterval);
 		clearInterval(skipnturretinterval);
 	}
 }
