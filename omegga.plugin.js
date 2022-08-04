@@ -413,7 +413,8 @@ class Base_wars {
 			z: bpos[2] + size[2],
 			};
 			if(await raycasttest.CheckLineBox(BP1, BP2, ray1, ray2)) {
-				hitbrick.push({p: bpos, s: size});
+				const owner = brs.brick_owners[brick.owner_index - 1];
+				hitbrick.push({p: bpos, s: size, o: owner});
 			}
 		}
 		let closetbrick = projrange;
@@ -429,6 +430,9 @@ class Base_wars {
 		}
 		if(brc.s == null) {return;}
 		if(brc !== 0) {
+			if(brc.o.name == 'PUBLIC') {
+				return;
+			}
 			brc.s = [Math.max(brc.s[0],projradius),Math.max(brc.s[1],projradius),Math.max(brc.s[2],projradius)];
 			let moneymcn = 0;
 			let isdamaged = true;
@@ -509,7 +513,8 @@ class Base_wars {
 				}
 			}
 			if(isdamaged) {
-				this.omegga.clearRegion({center: brc.p, extent: brc.s});
+				// This was done because omegga thinks that machines are not players.
+				this.omegga.writeln('Bricks.ClearRegion ' + brc.p.join(' ') + ' ' + brc.s.join(' ') + ' ' + brc.o.id);
 			}
 		}
 	}
@@ -607,6 +612,25 @@ class Base_wars {
 			time = buildtime;
 		}
 		finished = true;
+	}
+	
+	async loadmapbricks() {
+		const mapfolder = fs.readdirSync(__dirname + "/Map");
+		if(mapfolder.length > 0) {
+			console.log('Loading ' + mapfolder.length + ' map save(s).');
+		}
+		for(var mp in mapfolder) {
+			if(mapfolder[mp].indexOf('.brs') < 0) {
+				continue;
+			}
+			const mapfile = fs.readFileSync(__dirname + "/Map/"+mapfolder[mp]);
+			let map = brs.read(mapfile);
+			map.brick_owners = [{
+			id: '00000000-0000-0000-0000-000000000000',
+			name: 'PUBLIC',
+			bricks: 0}];
+			this.omegga.loadSaveData(map,{quiet:true});
+		}
 	}
 	
 	async initializemachines() {
@@ -885,7 +909,7 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Removed unnecesery code..</>");
+			this.omegga.whisper(name, clr.orn + "<b>Added map bricks. Map bricks are... well... indestructable. Multiple saves can be loaded.</>");
 			this.omegga.whisper(name, clr.orn + "<b>Removed darbot.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
@@ -1383,6 +1407,7 @@ class Base_wars {
 			online.push(players[pl].name);
 			this.omegga.getPlayer(players[pl].name).setTeam(0);
 		}
+		this.loadmapbricks();
 		ProjectileCheckInterval = setInterval(() => this.CheckProjectiles(enablechecker && online.length > 0),delay);
 		skipnturretinterval = setInterval(() => this.skipdecrementnturrets(),2000);
 		return { registeredCommands: ['wipeall','loadout','viewinv','setspawn','clearspawn','place','buy','listshop','basewars','refund','pay','changelog','placecore','removecore','skip','trust'] };
