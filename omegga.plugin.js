@@ -29,7 +29,7 @@ let shoplist = [
 	{weapon: 'impact grenade launcher', price: 1600, explosive: {radius: 15, damage: 8, penetration: 10}},
 	{weapon: 'classic assault rifle', price: 2100},
 	{weapon: 'bazooka', price: 2800, explosive: {radius: 30, damage: 8, penetration: 8}},
-	{weapon: 'rocket launcher', price: 3800, explosive: {radius: 100, damage: 30, penetration: 90}},
+	{weapon: 'rocket launcher', price: 3800, explosive: {radius: 80, damage: 30, penetration: 90}},
 	{weapon: 'twin cannon', price: 4600, explosive: {radius: 20, damage: 18, penetration: 3}}
 ];
 
@@ -358,7 +358,7 @@ class Base_wars {
 				projstrength = 10;
 				break;
 			case 'RocketLauncher':
-				projradius = 100;
+				projradius = 80;
 				projdamage = 30;
 				projstrength = 90;
 				break;
