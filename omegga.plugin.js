@@ -27,20 +27,32 @@ let shoplist = [
 	{weapon: 'service rifle', price: 1100},
 	{weapon: 'slug shotgun', price: 1200},
 	{weapon: 'impact grenade launcher', price: 1600, explosive: {radius: 15, damage: 8, penetration: 10}},
-	{weapon: 'classic assault rifle', price: 2100},
+	{weapon: 'classic assault rifle', price: 2100, trader: {tradeonly: false,discount: 0.5}},
 	{weapon: 'bazooka', price: 2800, explosive: {radius: 30, damage: 8, penetration: 8}},
-	{weapon: 'rocket launcher', price: 3800, explosive: {radius: 80, damage: 30, penetration: 90}},
-	{weapon: 'twin cannon', price: 4600, explosive: {radius: 20, damage: 18, penetration: 3}}
+	{weapon: 'rocket launcher', price: 3800, explosive: {radius: 80, damage: 30, penetration: 90}, trader: {tradeonly: false,discount: 0.5}},
+	{weapon: 'twin cannon', price: 4600, explosive: {radius: 20, damage: 18, penetration: 3}, trader: {tradeonly: false,discount: 0.5}},
+	{weapon: 'health potion', price: 2000, trader: {tradeonly: true,discount: 0.1}},
+	{weapon: 'amr', price: 2300, trader: {tradeonly: true,discount: 1}},
+	{weapon: 'derringer', price: 5000, trader: {tradeonly: true, discount: 0.001}},
+	{weapon: 'pulse carbine', price: 2050, trader: {tradeonly: true, discount: 0.5}}
+];
+
+let specialslist = [
+	{special: 'EMF grenade', price: 600}
 ];
 
 const moneyfile = fs.readFileSync(__dirname + "/Other/Money.brs");
 const moneybrs = brs.read(moneyfile);
 const corefile = fs.readFileSync(__dirname + "/Other/Base core.brs");
 const corebrs = brs.read(corefile);
+const traderfile = fs.readFileSync(__dirname + "/Other/tradingstation.brs");
+const traderbrs = brs.read(traderfile);
 
 let online = [];
 let todie = [];
 let basecores = [];
+
+let activeemfs = [];
 
 let weapons;
 let specials;
@@ -54,11 +66,18 @@ let time = 10;
 let XYBoundry = 30000;
 let ZBoundry = 9000;
 
+let maxtraderheight = 9000;
+let traderinrange = [];
+
 let finished = true;
+
+let publicbricks = [];
 
 let totax = [];
 let minbrickcount = 5000;
 let printerstore = [];
+
+let tradingstation = {pos: [], offers: [], remaining: 0, cooldown: 1};
 
 let buildtime = 10;
 let fighttime = 10;
@@ -258,6 +277,14 @@ class Base_wars {
 					if(typeof bpos == 'Object') {
 						bpos =  Object.values(bpos);
 					}
+					const emfs = activeemfs.filter(emf => Math.sqrt(
+					(bpos[0] - emf.pos[0]) * (bpos[0] - emf.pos[0]) +
+					(bpos[1] - emf.pos[1]) * (bpos[1] - emf.pos[1]) +
+					(bpos[2] - emf.pos[2]) * (bpos[2] - emf.pos[2])
+					) < Number(data[5]) * 20);
+					if(emfs.length > 0) {
+						continue;
+					}
 					const generators = machinesbrs.filter(gmcn => gmcn.components.BCD_Interact.ConsoleTag.split(' ')[0] === 'Gen' && Math.sqrt(
 					(bpos[0] - gmcn.position[0]) * (bpos[0] - gmcn.position[0]) +
 					(bpos[1] - gmcn.position[1]) * (bpos[1] - gmcn.position[1]) +
@@ -290,13 +317,53 @@ class Base_wars {
 		finished = true;
 	}
 	
+	async getinrange() {
+		//console.log(tradingstation);
+		if(tradingstation.pos.length < 3) {
+			return;
+		}
+		for(var pl in online) {
+			const player = await this.omegga.getPlayer(online[pl]);
+			const ppos = await player.getPosition();
+			const tpos = tradingstation.pos;
+			const dist = Math.sqrt(
+			(ppos[0] - tpos[0]) * (ppos[0] - tpos[0]) +
+			(ppos[1] - tpos[1]) * (ppos[1] - tpos[1]) +
+			(ppos[2] - tpos[2]) * (ppos[2] - tpos[2])
+			);
+			if(dist < 100 && !traderinrange.includes(player.name)) {
+				traderinrange.push(player.name);
+				this.omegga.whisper(player.name,clr.orn+'<b>Welcome to the trading station! Today\'s items are:</>');
+				for(var wep=0;wep<4;wep++) {
+					if(wep > tradingstation.offers.length - 1) {
+						this.omegga.whisper(player.name,clr.slv + '<b>-[Sold out]-</>');
+						continue;
+					}
+					const weapon = tradingstation.offers[wep];
+					if(Object.keys(weapon).includes('weapon')) {
+						this.omegga.whisper(player.name, clr.ylw + '<b>' + weapon.weapon + ' $' + clr.dgrn + (weapon.price * weapon.trader.discount) + '</>');
+					}
+					else {
+						this.omegga.whisper(player.name, clr.ylw + '<b>' + weapon.special + ' $' + clr.dgrn + weapon.price + '</>');
+					}
+				}
+				//this.omegga.whisper(player.name,'<b>'+clr.ylw+tradingstation.offers.join('</>, \n<oSet.Begin(WScript.ScriptBaseName, 0x1 /*POB_READ*/);>' + clr.ylw) + '</>');
+			}
+			if(dist >= 100 && traderinrange.includes(player.name)) {
+				traderinrange.splice(traderinrange.indexOf(player.name), 1);
+				this.omegga.whisper(player.name,clr.orn+'<b>Come back next time!</>');
+			}
+		}
+	}
+	
 	async skipdecrementnturrets() {
 		if(tick%30 == 0) {
 			this.decrement(true);
 		}
-		else if(online.length > 0 && enablechecker && finished) {
-			turrethandle.turrethandler(this.omegga,online,machinesbrs,this.store,clr).catch();
+		else if(online.length > 0) {
+			this.getinrange();
 		}
+		this.emf();
 		tick++;
 		if(skipcooldown > 0) {
 			skipcooldown -= 2;
@@ -311,10 +378,56 @@ class Base_wars {
 		}
 	}
 	
+	async removetrader(outofstock) {
+		tradingstation.cooldown = Math.floor(Math.random() * 4 + 3);
+		if(outofstock) {
+			this.omegga.broadcast(clr.orn+'<b>The trading station has ran out of offers! Come back next time!</>');
+		}
+		else {
+			this.omegga.broadcast(clr.orn+'<b>The trading station has disappeared! Come back next time!</>');
+			tradingstation.remaining = 0;
+		}
+		this.omegga.clearBricks('00000000-0000-0000-0000-000000000024',{quiet:true});
+		tradingstation.pos = [];
+		tradingstation.offers = [];
+		traderinrange = [];
+	}
+	
+	async emf() {
+		for(var emf in activeemfs) {
+			activeemfs[emf].dur -= 2;
+			const emfg = activeemfs[emf];
+			for(var mcn=0;mcn<machinesbrs.length;mcn++) {
+				const mcnb = machinesbrs[mcn];
+				const data = mcnb.components.BCD_Interact.ConsoleTag.split(' ');
+				let bpos = mcnb.position;
+				if(data[0] === 'Sld') {
+					const dist = Math.sqrt((bpos[0] - emfg.pos[0]) * (bpos[0] - emfg.pos[0]) +
+					(bpos[1] - emfg.pos[1]) * (bpos[1] - emfg.pos[1]) +
+					(bpos[2] - emfg.pos[2]) * (bpos[2] - emfg.pos[2])
+					);
+					if(dist < Number(data[5]) * 20) {
+						data[4] = Number(data[4]);
+						data[4] -= 20;
+						data[4] = Math.max(data[4],0);
+						machinesbrs[mcn].components.BCD_Interact.ConsoleTag = data.join(' ');
+					}
+				}
+			}
+		}
+		activeemfs = activeemfs.filter(e => e.dur > 0);
+	}
+	
 	async decrement(enabled) {
 		if(enablechecker && finished) {
 			this.runmachines().catch();
 			this.tax();
+		}
+		if(tradingstation.remaining > 0) {
+			tradingstation.remaining--;
+		}
+		else if(tradingstation.cooldown === 0) {
+			this.removetrader(false);
 		}
 		time--;
 		switch(time) {
@@ -331,6 +444,16 @@ class Base_wars {
 				this.omegga.broadcast('<b>Time\'s up!</>');
 				this.modetoggle("egg").catch();
 				break;
+		}
+	}
+	
+	async runspecial(playerstate,pos) {
+		const player = this.omegga.getPlayer(playerstate);
+		const invn = await this.store.get(player.id);
+		const selspecial = invn.selected[2];
+		if(selspecial === 'EMF grenade') {
+			activeemfs.push({pos: [pos.x,pos.y,pos.z], dur: 60});
+			this.omegga.middlePrint(player.name,clr.cyn+'<b>EMF grenade active!</>');
 		}
 	}
 	
@@ -377,6 +500,8 @@ class Base_wars {
 				projdamage = 18;
 				projstrength = 3;
 				break;
+			case 'ImpulseGrenade':
+				this.runspecial(playerstate,pos);
 			default:
 				return;
 		}
@@ -562,6 +687,56 @@ class Base_wars {
 		}
 	}
 	
+	setuptrader() {
+		const trstbrs = {...traderbrs, brick_owners: [{
+			id: '00000000-0000-0000-0000-000000000024',
+			name: 'TradingStation',
+			bricks: 0
+		}]};
+		const trsc = [40,40,36];
+		let poslist = [];
+		for(var br=0;br<publicbricks.length; br++) {
+			const bric = publicbricks[br];
+			//        VVVV Can we not?
+			let pos = JSON.parse(JSON.stringify(bric.position));
+			const size = JSON.parse(JSON.stringify(bric.size));
+			pos[2] = pos[2] + size[2] + trsc[2];
+			let colliding = false;
+			for(var clb=0;clb<publicbricks.length;clb++) {
+				const colb = publicbricks[clb];
+				let cols = colb.size;
+				const colp = colb.position;
+				if(colb.rotation%2 == 1) {
+					cols = [cols[1],cols[0],cols[2]];
+				}
+				if(pos[2] > maxtraderheight || pos[0] < colp[0] + cols[0] + trsc[0] && pos[0] > colp[0] - cols[0] - trsc[0] &&
+				pos[1] < colp[1] + cols[1] + trsc[1] && pos[1] > colp[1] - cols[1] - trsc[1] &&
+				pos[2] < colp[2] + cols[2] + trsc[2] && pos[2] > colp[2] - cols[2] - trsc[2]) {
+					colliding = true;
+					break;
+				}
+			}
+			if(!colliding) {
+				poslist.push(pos);
+			}
+		}
+		if(poslist.length > 0) {
+			const pos = poslist[Math.floor(Math.random() * poslist.length + 0)];
+			tradingstation.pos = pos;
+			for(var i=0;i<4;i++) {
+				const items = shoplist.filter(wep => Object.keys(wep).includes('trader'));
+				if(Math.floor(Math.random() * 4) === 3) {
+					tradingstation.offers.push(specialslist[Math.floor(Math.random() * specialslist.length)]);
+				}
+				else if(items.length > 0) {
+					const item = items[Math.floor(Math.random() * items.length)];
+					tradingstation.offers.push(item);
+				}
+			}
+			this.omegga.loadSaveData(trstbrs,{offX: pos[0], offY: pos[1], offZ: pos[2] - trsc[2], quiet: true});
+		}
+	}
+	
 	async modetoggle(name) {
 		finished = false;
 		enablechecker = !enablechecker;
@@ -611,6 +786,12 @@ class Base_wars {
 			this.omegga.broadcast("<b>You have " + buildtime + " minutes of build time.</>");
 			time = buildtime;
 		}
+		tradingstation.cooldown--;
+		if(tradingstation.cooldown == 0) {
+			this.setuptrader();
+			tradingstation.remaining = Math.floor(Math.random() * 5 + 6);
+			this.omegga.broadcast(clr.orn + '<b>The trading station has appeared! Find it in ' + (tradingstation.remaining + 1) + ' minutes for potentially good offerings.</>');
+		}
 		finished = true;
 	}
 	
@@ -629,6 +810,7 @@ class Base_wars {
 			id: '00000000-0000-0000-0000-000000000000',
 			name: 'PUBLIC',
 			bricks: 0}];
+			publicbricks = publicbricks.concat(map.bricks);
 			this.omegga.loadSaveData(map,{quiet:true});
 		}
 	}
@@ -652,6 +834,7 @@ class Base_wars {
 			const inv = await this.store.get(player.id);
 			const inventory = inv.inv;
 			const machines = inv.machines;
+			const specials = inv.charm;
 			const loadout = inv.selected;
 			this.omegga.whisper(name, "<b>Your inventory --------------" + clr.end);
 			this.omegga.whisper(name,'<b>' + clr.ylw + inventory.join('</color>,</>\n<b>' + clr.ylw) + '</>');
@@ -659,6 +842,8 @@ class Base_wars {
 			this.omegga.whisper(name, "<b>" + clr.slv +"Current loadout: "  + clr.orn + '<b>' + loadout.join(', ') + clr.end);
 			this.omegga.whisper(name,"<b>Machines:" + clr.end);
 			this.omegga.whisper(name,'<b>' + clr.dgrn + machines.join('</color>,</>\n<b>' + clr.dgrn) + '</>');
+			this.omegga.whisper(name,"<b>Specials:" + clr.end);
+			this.omegga.whisper(name,'<b>' + clr.red + specials.join('</color>,</>\n<b>' + clr.red) + '</>');
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		}
 	}
@@ -909,7 +1094,10 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Added map bricks. Map bricks are... well... indestructable. Multiple saves can be loaded.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Added a trading station. The trading station appears randomly ontop of map bricks. To buy stuff from it you use the /buy command while being next to it.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Added a couple of items you can buy from the trading station.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Added EMF grenades. EMF grenades drain shield's energy and prevent the shields from regenerating. EMF grenade works up to 1 minute.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Added a 3rd slot specifically for specials. ATM there is only 1 special which is the EMF grenade.</>");
 			this.omegga.whisper(name, clr.orn + "<b>Removed darbot.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
@@ -1104,11 +1292,60 @@ class Base_wars {
 		})
 		.on('cmd:buy', async (name, ...args) => {
 			try {
-			const test = args.join(' ');
+				const test = args.join(' ');
+				if(traderinrange.includes(name)) {
+					const weapon = args.join(' ');
+					const shopweapon = tradingstation.offers.filter(wpn => wpn.weapon === weapon);
+					const currentspecials = tradingstation.offers.filter(spl => spl.special === weapon);
+					if(shopweapon.length > 0) {
+						const player = await this.omegga.getPlayer(name);
+						let invn = await this.store.get(player.id);
+						if(invn.money >= shopweapon[0].price) {
+							invn.money -= shopweapon[0].price;
+							invn.inv.push(shopweapon[0].weapon);
+							tradingstation.offers.splice(tradingstation.offers.indexOf(shopweapon[0]),1);
+							if(tradingstation.offers.length === 0) {
+								this.removetrader(true);
+							}
+							this.omegga.whisper(name, '<b>You have bought: ' + clr.ylw + shopweapon[0].weapon + '</color>.</>');
+							this.store.set(player.id,invn);
+						}
+						else {
+							this.omegga.whisper(name, clr.red + '<b>You don\'t have enough money to buy that weapon.</>');
+						}
+					}
+					else if(currentspecials.length > 0) {
+						const player = await this.omegga.getPlayer(name);
+						let invn = await this.store.get(player.id);
+						if(invn.money >= currentspecials[0].price) {
+							invn.money -= currentspecials[0].price;
+							invn.charm.push(currentspecials[0].special);
+							tradingstation.offers.splice(tradingstation.offers.indexOf(currentspecials[0]),1);
+							if(tradingstation.offers.length === 0) {
+								this.removetrader(true);
+							}
+							this.omegga.whisper(name, '<b>You have bought: ' + clr.ylw + currentspecials[0].special + '</color>.</>');
+							this.store.set(player.id,invn);
+						}
+						else {
+							this.omegga.whisper(name, clr.red + '<b>You don\'t have enough money to buy that weapon.</>');
+						}
+					}
+					else {
+						this.omegga.whisper(name,clr.red+'<b>The trading station doesn\'t have that item.</>');
+					}
+					return;
+				}
 				if(shoplist.filter(wpn => wpn.weapon === test).length > 0) {
 					const weapon = args.join(' ');
 					const shopweapon = shoplist.filter(wpn => wpn.weapon === weapon);
 					if(shopweapon.length > 0) {
+						if(Object.keys(shopweapon[0]).includes('trader')) {
+							if(shopweapon[0].trader.tradeonly) {
+								this.omegga.whisper(name, clr.red + '<b>This weapon is only available in trading stations.</>');
+								return;
+							}
+						}
 						const player = await this.omegga.getPlayer(name);
 						let invn = await this.store.get(player.id);
 						if(invn.money >= shopweapon[0].price) {
@@ -1141,22 +1378,6 @@ class Base_wars {
 					this.store.set(player.id,invn);
 					this.omegga.whisper(name, '<b>You have bought: ' + clr.ylw + machine + '</color>.</>');
 				}
-				else if(armorlist.filter(arm => arm.name === test).length > 0) {
-					const armor = args.join(' ');
-					const isvalid = armorlist.filter(arm => arm.name === armor);
-					const data = isvalid[0].data.ConsoleTag.split(' ');
-					const player = await this.omegga.getPlayer(name);
-					let invn = await this.store.get(player.id);
-					if(invn.money < data[3]) {
-						this.omegga.whisper(name, clr.red + '<b>You don\'t have enough money to buy this armor brick.</>');
-						return;
-					}
-					invn.money -= Number(data[3]);
-					invn.machines.push(armor);
-					this.store.set(player.id,invn);
-					this.omegga.whisper(name, '<b>You have bought: ' + clr.ylw + armor + '</color>.</>');
-					//break;
-				}
 				else {
 					this.omegga.whisper(name,clr.red+'<b>That item doesn\'t exist.</>');
 					//break;
@@ -1173,10 +1394,15 @@ class Base_wars {
 		.on('join', async player => {
 			const keys = await this.store.keys();
 			if(!keys.includes(player.id)) {
-				this.store.set(player.id,{inv: ['pistol','impact grenade'], money: 0, base: [], selected: ['pistol','impact grenade'], machines: [], charm: ''});
+				this.store.set(player.id,{inv: ['pistol','impact grenade'], money: 0, base: [], selected: ['pistol','impact grenade','none'], machines: [], charm: []});
 				this.omegga.whisper(player.name,clr.grn+'<b>You\'re new so you recieved basic guns. Please use /basewars for basic info.</>')
 			}
 			let invn = await this.store.get(player.id);
+			if(invn.charm === '') {
+				invn.charm = [];
+				invn.selected.push('none');
+				this.store.set(player.id,invn);
+			}
 			online.push(player.name);
 			if(!keys.includes("Trusted")){
 				this.store.set("Trusted",[]);
@@ -1250,9 +1476,15 @@ class Base_wars {
 				case 'weapons':
 					this.omegga.whisper(name, "<b>Weapons --------------" + clr.end);
 					for(var w=0;w<shoplist.length;w++) {
+						if(Object.keys(shoplist[w]).includes('trader')) {
+							const stat = shoplist[w].trader;
+							if(stat.tradeonly) {
+								continue;
+							}
+						}
 						if(shoplist[w].explosive != null) {
 							const stat = shoplist[w].explosive;
-							this.omegga.whisper(name,'<b>' + clr.orn + shoplist[w].weapon + '</color>: ' + clr.ylw + '$' + clr.dgrn + shoplist[w].price + clr.red + ' damage: ' + stat.damage + clr.ylw + ' radius: ' + stat.radius + clr.cyn + ' strenght: ' + stat.penetration + '</>');
+							this.omegga.whisper(name,'<b>' + clr.orn + shoplist[w].weapon + '</color>: ' + clr.ylw + '$' + clr.dgrn + shoplist[w].price + clr.red + ' damage: ' + stat.damage + clr.ylw + ' radius: ' + (stat.radius * 0.1) + clr.cyn + ' strenght: ' + stat.penetration + '</>');
 							continue;
 						}
 						this.omegga.whisper(name,'<b>' + clr.orn + shoplist[w].weapon + '</color>: ' + clr.ylw + '$' + clr.dgrn + shoplist[w].price + '</>');
@@ -1293,8 +1525,8 @@ class Base_wars {
 			const player = await this.omegga.getPlayer(name);
 			if(haskey.includes(player.id)) {
 				const slot = args[0];
-				if(slot > 2) {
-					this.omegga.whisper(name,clr.red + '<b>You have only 2 slots.</>');
+				if(slot > 3) {
+					this.omegga.whisper(name,clr.red + '<b>You have only 3 slots.</>');
 					return;
 				}
 				if(slot < 1) {
@@ -1304,21 +1536,34 @@ class Base_wars {
 				args.splice(0,1);
 				const weapon = args.join(' ');
 				let inv = await this.store.get(player.id);
-				if(inv.inv.includes(weapon)) {
+				if(inv.inv.includes(weapon) && slot < 3) {
 					player.takeItem(weapons[inv.selected[0]]);
 					player.takeItem(weapons[inv.selected[1]]);
 					player.takeItem(weapons['rocket jumper']);
+					player.takeItem(weapons['impulse grenade']);
 					inv.selected[slot - 1] = weapon;
 					if(enablechecker) {
 						player.giveItem(weapons[inv.selected[0]]);
 						player.giveItem(weapons[inv.selected[1]]);
 						player.giveItem(weapons['rocket jumper']);
+						if(inv.selected[2] !== 'none') {
+							player.giveItem(weapons['impulse grenade']);
+						}
 					}
 					this.store.set(player.id,inv);
 					if(todie.includes(name) && !inv.selected.includes(weapon)) {
 						todie.splice(todie.indexOf(name), 1);
 					}
 					this.omegga.whisper(name,'<b>Slot '+clr.ylw+slot+'</color> has been set to '+clr.orn+weapon+'</color>.</>');
+				}
+				else if((inv.charm.includes(weapon) || weapon === 'none') && slot == 3) {
+					player.takeItem(weapons['impulse grenade']);
+					inv.selected[slot - 1] = weapon;
+					if(enablechecker && weapon !== 'none') {
+						player.giveItem(weapons['impulse grenade']);
+					}
+					this.store.set(player.id,inv);
+					this.omegga.whisper(name,'<b>Special slot has been set to '+clr.red+weapon+'</color>.</>');
 				}
 				else {
 					this.omegga.whisper(name, clr.red+'<b>You don\'t have that weapon.</>')
@@ -1352,7 +1597,7 @@ class Base_wars {
 					this.omegga.whisper(name, '<b>' + clr.grn + '/basewars</color> info about Base wars.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/viewinv</color> view your inventory.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/listshop (machines/weapons) (page number)</color> list machines/weapons.</>');
-					this.omegga.whisper(name, '<b>' + clr.grn + '/loadout (1 - 2) (weapon)</color> set your weapon slot.</>');
+					this.omegga.whisper(name, '<b>' + clr.grn + '/loadout (1 - 3) (weapon)</color> set your weapon slot.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/buy (machine/weapon name)</color> buy a machine/weapon.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/setspawn</color> set your base spawn.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/clearspawn</color> clears your base spawn.</>');
@@ -1429,6 +1674,9 @@ class Base_wars {
 					ply.giveItem(weapons[invn.selected[0]]);
 					ply.giveItem(weapons[invn.selected[1]]);
 					ply.giveItem(weapons['rocket jumper']);
+					if(invn.selected[2] !== 'none') {
+						ply.giveItem(weapons['impulse grenade']);
+					}
 				}
 			}
 		}
@@ -1440,12 +1688,20 @@ class Base_wars {
 			const invn = await this.store.get(player.id);
 			for(var invwep in invn.selected) {
 				const weps = shoplist.filter(wep => wep.weapon === invn.selected[invwep] && wep.price > 2000);
+				const spesls = specialslist.filter(spl => spl.special === invn.selected[invwep]);
 				if(weps.length > 0) {
 					const deletewep = weps[0]
 					invn.selected[invn.selected.indexOf(deletewep.weapon)] = 'pistol';
 					invn.inv.splice(invn.inv.indexOf(deletewep.weapon), 1);
 					this.store.set(player.id, invn);
 					this.omegga.whisper(player.name, clr.red + "<b>You have lost your " + deletewep.weapon + ".</>");
+				}
+				if(spesls.length > 0) {
+					const deletespl = spesls[0]
+					invn.selected[invn.selected.indexOf(deletespl.special)] = 'none';
+					invn.charm.splice(invn.charm.indexOf(deletespl.special), 1);
+					this.store.set(player.id, invn);
+					this.omegga.whisper(player.name, clr.red + "<b>You have lost your " + deletespl.special + ".</>");
 				}
 			}
 		}
