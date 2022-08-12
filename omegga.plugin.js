@@ -1096,11 +1096,7 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Added a trading station. The trading station appears randomly ontop of map bricks. To buy stuff from it you use the /buy command while being next to it.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Added a couple of items you can buy from the trading station.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Added EMF grenades. EMF grenades drain shield's energy and prevent the shields from regenerating. EMF grenade works up to 1 minute.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Added a 3rd slot specifically for specials. ATM there is only 1 special which is the EMF grenade.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Removed darbot.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Fixed spelling mistakes.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
 		.on('cmd:placecore', async name => {
