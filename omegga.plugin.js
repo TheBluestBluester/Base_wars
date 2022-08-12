@@ -786,8 +786,10 @@ class Base_wars {
 			this.omegga.broadcast("<b>You have " + buildtime + " minutes of build time.</>");
 			time = buildtime;
 		}
-		tradingstation.cooldown--;
-		if(tradingstation.cooldown == 0) {
+		if(tradingstation.cooldown > 0) {
+			tradingstation.cooldown--;
+		}
+		if(tradingstation.cooldown == 0 && tradingstation.remaining == 0) {
 			this.setuptrader();
 			tradingstation.remaining = Math.floor(Math.random() * 5 + 6);
 			this.omegga.broadcast(clr.orn + '<b>The trading station has appeared! Find it in ' + (tradingstation.remaining + 1) + ' minutes for potentially good offerings.</>');
@@ -995,9 +997,9 @@ class Base_wars {
 			}
 			wanttoskip.push(name);
 			const lefttovote = minplayers - wanttoskip.length;
-			this.omegga.broadcast(clr.ylw + '<b>' + name + '</></><b> wants to skip this round. Atleast ' + clr.grn + lefttovote + '</><b> more players needed to skip the round.</>');
+			this.omegga.broadcast(clr.ylw + '<b>' + name + '</></><b> wants to skip this round. At least ' + clr.grn + lefttovote + '</><b> more players needed to skip the round.</>');
 			if(lefttovote < 1) {
-				this.omegga.broadcast(clr.ylw + '<b>Enouph players have voted to skip this round.</>');
+				this.omegga.broadcast(clr.ylw + '<b>Enough players have voted to skip this round.</>');
 				skiptime = 0;
 				wanttoskip = [];
 				time = 1;
@@ -1024,7 +1026,7 @@ class Base_wars {
 			const pid1 = await this.omegga.getPlayer(name);
 			let invn = await this.store.get(pid1.id);
 			if(invn.money < money) {
-				this.omegga.whisper(name, clr.red + '<b>You don\'t have enouph money to pay ' + clr.ylw + '$' + clr.dgrn + money + clr.red + '.</>');
+				this.omegga.whisper(name, clr.red + '<b>You don\'t have enough money to pay ' + clr.ylw + '$' + clr.dgrn + money + clr.red + '.</>');
 				return;
 			}
 			invn.money -= money;
