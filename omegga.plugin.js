@@ -2,7 +2,6 @@ const { brs } = OMEGGA_UTIL;
 const raycasttest = require('./Raycast');
 const weplist = require('./Weaponslist');
 const speciallist = require('./SpecialBrickSizeTable');
-const turrethandle = require('./turrethandle');	
 const fs = require('fs');
 
 const clr = {
@@ -106,6 +105,12 @@ class Base_wars {
 		this.store = store
 		delay = this.config.UpdateFrequency;
 		projrange = this.config.DetectionRange;
+		buildtime = this.config.BuildTime;
+		fighttime = this.config.FightTime;
+		XYBoundry = this.config.XYBoundry;
+		ZBoundry = this.config.ZBoundry;
+		maxtraderheight = this.config.MaxTraderHeight;
+		minbrickcount = this.config.ImmuneBrickCount;
 	}
 	async CheckProjectiles(enabled) {
 		if(!enabled) { return; }
@@ -709,7 +714,7 @@ class Base_wars {
 				if(colb.rotation%2 == 1) {
 					cols = [cols[1],cols[0],cols[2]];
 				}
-				if(pos[2] > maxtraderheight || pos[0] < colp[0] + cols[0] + trsc[0] && pos[0] > colp[0] - cols[0] - trsc[0] &&
+				if(pos[2] > maxtraderheight * 10 || pos[0] < colp[0] + cols[0] + trsc[0] && pos[0] > colp[0] - cols[0] - trsc[0] &&
 				pos[1] < colp[1] + cols[1] + trsc[1] && pos[1] > colp[1] - cols[1] - trsc[1] &&
 				pos[2] < colp[2] + cols[2] + trsc[2] && pos[2] > colp[2] - cols[2] - trsc[2]) {
 					colliding = true;
@@ -741,31 +746,47 @@ class Base_wars {
 		finished = false;
 		enablechecker = !enablechecker;
 		const players = this.omegga.getPlayers();
+		// Credits to tallen
 		if(enablechecker) {
 			if(players == null || players === []) {
 				enablechecker = false;
 				return;
 			}
 			for(var pl in players) {
-				const player = players[pl];
-				this.omegga.getPlayer(player.id).setTeam(1);
+			const player = players[pl];
+			this.omegga.getPlayer(player.id).setTeam(1);
+		}
+		let brs = await this.omegga.getSaveData();
+		if(brs == null) {return;}
+		//let startTime = new Date();
+		let bricjowners = brs.brick_owners.filter(owner => online.includes(owner.name));
+		let cores = new Array();
+		let machinebricks = new Array();
+		
+		for(var i = 0; i < brs.bricks.length; i++) {
+		const brick = brs.bricks[i];
+		if('BCD_ItemSpawn' in brick.components) {
+			let size = brick.size;
+			if(brick.rotation%2 == 1) {
+				size = [size[1],size[0],size[2]];
 			}
-			let brs = await this.omegga.getSaveData();
-			if(brs == null) {return;}
-			let bricjowners = brs.brick_owners.filter(owner => online.includes(owner.name));
-			machinesbrs = brs;
-			machinesbrs = machinesbrs.bricks.filter(machine => 'BCD_Interact' in machine.components && machinesbrs.brick_owners[machine.owner_index - 1].name.indexOf('MCN') === 0 && Math.abs(machine.position[0]) < XYBoundry * 10 && Math.abs(machine.position[1]) < XYBoundry * 10 && machine.position[2] < ZBoundry * 10 && machine.position[2] >= 0);
-			const cores = brs.bricks.filter(brick => 'BCD_Interact' in brick.components && brs.brick_owners[brick.owner_index - 1].name.indexOf('BaseCore') !== -1);
-			basecores = cores;
-			brs.bricks = brs.bricks.filter(brick => 'BCD_ItemSpawn' in brick.components);
-			for(var br in brs.bricks) {
-				const brick = brs.bricks[br];
-				let size = brick.size;
-				if(brick.rotation%2 == 1) {
-					size = [size[1],size[0],size[2]];
+			this.omegga.clearRegion({center: brick.position, extent: size});
+			} else if('BCD_Interact' in brick.components) {
+				if(brs.brick_owners[brick.owner_index - 1].name.indexOf('BaseCore') !== -1) {
+					cores.push(brick);
+				} else if(brs.brick_owners[brick.owner_index - 1].name.indexOf('MCN') === 0 && Math.abs(brick.position[0]) < XYBoundry * 10 && Math.abs(brick.position[1]) < XYBoundry * 10 && brick.position[2] > 0 && brick.position[2] < ZBoundry * 10) {
+						machinebricks.push(brick);
+					}
 				}
-				this.omegga.clearRegion({center: brick.position, extent: size});
 			}
+			
+			
+			machinesbrs = machinebricks;
+			basecores = cores;
+			
+			//let endTime = new Date();
+			//let finalTime = (endTime - startTime) / 1000;
+			//this.omegga.broadcast("Took: " + finalTime + " seconds.");
 			this.omegga.broadcast("<size=\"50\"><b>Fight!</>");
 			this.omegga.broadcast("<b>You have " + fighttime + " minutes of fight time.</>");
 			this.preparetax(bricjowners);
@@ -1096,7 +1117,9 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Fixed spelling mistakes.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Replaced some of the code with tallen's for optimizations.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Removed require(turrethandler).</>");
+			this.omegga.whisper(name, clr.orn + "<b>Added more config options.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
 		.on('cmd:placecore', async name => {

@@ -1,6 +1,6 @@
 {
   "name": "Base_wars",
-  "description": "Destroys bricks n stuff",
+  "description": "Build bases, make money, destroy bases.",
   "author": "Bluester16",
   "config": {
     "UpdateFrequency": {
@@ -11,6 +11,36 @@
     "DetectionRange": {
       "description": "Range of the raycaster.",
       "default": 1000,
+      "type": "number"
+    },
+    "BuildTime": {
+      "description": "Length of the build mode round in minutes.",
+      "default": 10,
+      "type": "number"
+    },
+    "FightTime": {
+      "description": "Length of the fight mode round in minutes.",
+      "default": 10,
+      "type": "number"
+    },
+    "XYBoundry": {
+      "description": "Length of the boundy from the center to the edge in which you can place machines. Measured in studs.",
+      "default": 30000,
+      "type": "number"
+    },
+    "ZBoundry": {
+      "description": "Height of the boundy from height 0 in which you can place machines. Measured in studs.",
+      "default": 9000,
+      "type": "number"
+    },
+    "MaxTraderHeight": {
+      "description": "Height limit at which the trading station can spawn. Measured in studs.",
+      "default": 9000,
+      "type": "number"
+    },
+    "ImmuneBrickCount": {
+      "description": "Maximum brickcount a player can have before getting taxed.",
+      "default": 5000,
       "type": "number"
     }
   },
