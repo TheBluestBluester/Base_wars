@@ -1107,8 +1107,6 @@ class Base_wars {
 						this.omegga.middlePrint(data.player.id,clr.ylw + '<b>$' + clr.dgrn + store.money + '</>');
 						printerstore.splice(printerstore.indexOf(store),1);
 						this.store.set(data.player.id,invn);
-						mcntimeout.push(data.player.id);
-						setTimeout(() => mcntimeout.splice(mcntimeout.indexOf(data.player.id),1), 5000);
 					}
 				}
 			}
@@ -1124,6 +1122,7 @@ class Base_wars {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
 			this.omegga.whisper(name, clr.orn + "<b>Fixed trading station bricks not getting removed.</>");
 			this.omegga.whisper(name, clr.orn + "<b>Reduced health potion price by 10 times.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Removed the timeout when clicking automatic printers.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
 		.on('cmd:placecore', async name => {
