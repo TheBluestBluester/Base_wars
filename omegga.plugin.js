@@ -30,7 +30,7 @@ let shoplist = [
 	{weapon: 'bazooka', price: 2800, explosive: {radius: 30, damage: 8, penetration: 8}},
 	{weapon: 'rocket launcher', price: 3800, explosive: {radius: 80, damage: 30, penetration: 90}, trader: {tradeonly: false,discount: 0.5}},
 	{weapon: 'twin cannon', price: 4600, explosive: {radius: 20, damage: 18, penetration: 3}, trader: {tradeonly: false,discount: 0.5}},
-	{weapon: 'health potion', price: 2000, trader: {tradeonly: true,discount: 0.1}},
+	{weapon: 'health potion', price: 2000, trader: {tradeonly: true,discount: 0.02}},
 	{weapon: 'amr', price: 2300, trader: {tradeonly: true,discount: 1}},
 	{weapon: 'derringer', price: 5000, trader: {tradeonly: true, discount: 0.001}},
 	{weapon: 'pulse carbine', price: 2050, trader: {tradeonly: true, discount: 0.5}}
@@ -742,6 +742,18 @@ class Base_wars {
 		}
 	}
 	
+	async announcetradingstation() {
+		if(tradingstation.cooldown > 0) {
+			tradingstation.cooldown--;
+		}
+		if(tradingstation.cooldown == 0 && tradingstation.remaining == 0) {
+			await this.omegga.clearBricks('00000000-0000-0000-0000-000000000024',{quiet:true});
+			this.setuptrader();
+			tradingstation.remaining = Math.floor(Math.random() * 5 + 6);
+			this.omegga.broadcast(clr.orn + '<b>The trading station has appeared! Find it in ' + (tradingstation.remaining + 1) + ' minutes for potentially good offerings.</>');
+		}
+	}
+	
 	async modetoggle(name) {
 		finished = false;
 		enablechecker = !enablechecker;
@@ -807,14 +819,7 @@ class Base_wars {
 			this.omegga.broadcast("<b>You have " + buildtime + " minutes of build time.</>");
 			time = buildtime;
 		}
-		if(tradingstation.cooldown > 0) {
-			tradingstation.cooldown--;
-		}
-		if(tradingstation.cooldown == 0 && tradingstation.remaining == 0) {
-			this.setuptrader();
-			tradingstation.remaining = Math.floor(Math.random() * 5 + 6);
-			this.omegga.broadcast(clr.orn + '<b>The trading station has appeared! Find it in ' + (tradingstation.remaining + 1) + ' minutes for potentially good offerings.</>');
-		}
+		this.announcetradingstation();
 		finished = true;
 	}
 	
@@ -1117,9 +1122,8 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Replaced some of the code with tallen's for optimizations.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Removed require(turrethandler).</>");
-			this.omegga.whisper(name, clr.orn + "<b>Added more config options.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Fixed trading station bricks not getting removed.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Reduced health potion price by 10 times.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
 		.on('cmd:placecore', async name => {
