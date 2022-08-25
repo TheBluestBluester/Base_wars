@@ -459,6 +459,9 @@ class Base_wars {
 		if(selspecial === 'EMF grenade') {
 			activeemfs.push({pos: [pos.x,pos.y,pos.z], dur: 60});
 			this.omegga.middlePrint(player.name,clr.cyn+'<b>EMF grenade active!</>');
+			invn.selected[2] = 'none';
+			invn.inv.splice(invn.inv.indexOf('EMF grenade'), 1);
+			this.store.set(player.id, invn);
 		}
 	}
 	
@@ -826,7 +829,8 @@ class Base_wars {
 	async loadmapbricks() {
 		const mapfolder = fs.readdirSync(__dirname + "/Map");
 		if(mapfolder.length > 0) {
-			console.log('Loading ' + mapfolder.length + ' map save(s).');
+			const folderlength = mapfolder.filter(map => !(map.indexOf('.brs') < 0));
+			console.log('Loading ' + folderlength.length + ' map save(s).');
 		}
 		for(var mp in mapfolder) {
 			if(mapfolder[mp].indexOf('.brs') < 0) {
@@ -1120,9 +1124,9 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Fixed trading station bricks not getting removed.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Reduced health potion price by 10 times.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Removed the timeout when clicking automatic printers.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Fixed slot 1 being duplicated into the 4th slot when there is no specials equiped.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Fixed displaying non brs files when loading maps.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Fixed EMF grenade not geting removed when used.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
 		.on('cmd:placecore', async name => {
@@ -1434,9 +1438,9 @@ class Base_wars {
 			const plyr = this.omegga.getPlayer(player.id);
 			if(enablechecker) {
 				plyr.setTeam(1);
-				plyr.giveItem(weapons[invn.selected[0]]);
-				plyr.giveItem(weapons[invn.selected[1]]);
-				plyr.giveItem(weapons['rocket jumper']);
+				//plyr.giveItem(weapons[invn.selected[0]]);
+				//plyr.giveItem(weapons[invn.selected[1]]);
+				//plyr.giveItem(weapons['rocket jumper']);
 			}
 			else {
 				plyr.setTeam(0);
