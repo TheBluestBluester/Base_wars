@@ -460,7 +460,7 @@ class Base_wars {
 			activeemfs.push({pos: [pos.x,pos.y,pos.z], dur: 60});
 			this.omegga.middlePrint(player.name,clr.cyn+'<b>EMF grenade active!</>');
 			invn.selected[2] = 'none';
-			invn.inv.splice(invn.inv.indexOf('EMF grenade'), 1);
+			invn.charm.splice(invn.inv.indexOf('EMF grenade'), 1);
 			this.store.set(player.id, invn);
 		}
 	}
