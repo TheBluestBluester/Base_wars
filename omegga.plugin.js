@@ -30,14 +30,14 @@ let shoplist = [
 	{weapon: 'bazooka', price: 2800, explosive: {radius: 30, damage: 8, penetration: 8}},
 	{weapon: 'rocket launcher', price: 3800, explosive: {radius: 80, damage: 30, penetration: 90}, trader: {tradeonly: false,discount: 0.5}},
 	{weapon: 'twin cannon', price: 4600, explosive: {radius: 20, damage: 18, penetration: 3}, trader: {tradeonly: false,discount: 0.5}},
-	{weapon: 'health potion', price: 2000, trader: {tradeonly: true,discount: 0.02}},
 	{weapon: 'amr', price: 2300, trader: {tradeonly: true,discount: 1}},
 	{weapon: 'derringer', price: 5000, trader: {tradeonly: true, discount: 0.001}},
 	{weapon: 'pulse carbine', price: 2050, trader: {tradeonly: true, discount: 0.5}}
 ];
 
 let specialslist = [
-	{special: 'EMF grenade', price: 600}
+	{special: 'EMF grenade', price: 600},
+	{special: 'health potion', price: 20}
 ];
 
 const moneyfile = fs.readFileSync(__dirname + "/Other/Money.brs");
@@ -457,7 +457,7 @@ class Base_wars {
 		const invn = await this.store.get(player.id);
 		const selspecial = invn.selected[2];
 		if(selspecial === 'EMF grenade') {
-			activeemfs.push({pos: [pos.x,pos.y,pos.z], dur: 60});
+			activeemfs.push({pos: [pos.x,pos.y,pos.z], dur: 30});
 			this.omegga.middlePrint(player.name,clr.cyn+'<b>EMF grenade active!</>');
 			invn.selected[2] = 'none';
 			invn.charm.splice(invn.inv.indexOf('EMF grenade'), 1);
@@ -572,35 +572,50 @@ class Base_wars {
 			const shields = machinesbrs.filter(smcn => smcn.components.BCD_Interact.ConsoleTag.indexOf('Sld') !== -1);
 			const inrange = [];
 			let prevdist = 100000;
-			for(var sld in shields) {
-				const smcn = shields[sld];
-				const data = smcn.components.BCD_Interact.ConsoleTag.split(' ');
-				const townr = data.splice(6,data.length - 6).join(' ');
-				const dist = Math.sqrt(
-				(brc.p[0] - smcn.position[0]) * (brc.p[0] - smcn.position[0]) +
-				(brc.p[1] - smcn.position[1]) * (brc.p[1] - smcn.position[1]) +
-				(brc.p[2] - smcn.position[2]) * (brc.p[2] - smcn.position[2])
-				);
-				if(dist < Number(data[5]) * 10 && Number(data[4]) > 0) {
-					inrange.push(smcn);
-				}
-			}
-			if(inrange.length > 0) {
-				const shield = inrange[0];
-				let data = shield.components.BCD_Interact.ConsoleTag.split(' ');
-				const index = machinesbrs.indexOf(shield);
-				data[4] = Math.max(Number(data[4]) - projstrength, 0);
-				this.omegga.middlePrint(playerstate, '<b>Shield charge: ' + data[4] + '</>');
-				shield.components.BCD_Interact.ConsoleTag = data.join(' ');
-				machinesbrs[index] = shield;
-				return;
-			}
+			const trust = await this.store.get("Trusted");
 			for(var mcn in machinesbrs) {
 				if(machinesbrs[mcn].position[0] === brc.p[0] && machinesbrs[mcn].position[1] === brc.p[1] && machinesbrs[mcn].position[2] === brc.p[2]) {
 					moneymcn = machinesbrs[mcn];
 					let moneybrick = moneybrs.bricks[0];
 					moneybrick.position = [Math.floor(Number(pos.x)),Math.floor(Number(pos.y)),Math.floor(Number(pos.z))];
 					let mmcnd = moneymcn.components.BCD_Interact.ConsoleTag.split(' ');
+					let pname = '';
+					if(mmcnd.includes('Printer')) {
+						pname = mmcnd.splice(6,mmcnd.length - 6).join(' ');
+					}
+					else {
+						pname = mmcnd.splice(5,mmcnd.length - 5).join(' ');
+					}
+					if(mmcnd.includes('Manual')) {
+						pname = mmcnd.splice(4,mmcnd.length - 4).join(' ');
+					}
+					for(var sld in shields) {
+						const smcn = shields[sld];
+						const data = smcn.components.BCD_Interact.ConsoleTag.split(' ');
+						const townr = data.splice(6,data.length - 6).join(' ');
+						//console.log(townr);
+						const dist = Math.sqrt(
+						(brc.p[0] - smcn.position[0]) * (brc.p[0] - smcn.position[0]) +
+						(brc.p[1] - smcn.position[1]) * (brc.p[1] - smcn.position[1]) +
+						(brc.p[2] - smcn.position[2]) * (brc.p[2] - smcn.position[2])
+						);
+						if(dist < Number(data[5]) * 10 && Number(data[4]) > 0) {
+							const tlist = trust.filter(t => t.player === townr && t.trusts === pname);
+							if(tlist.length > 0 || townr === pname) {
+								inrange.push(smcn);
+							}
+						}
+					}
+					if(inrange.length > 0) {
+						const shield = inrange[0];
+						let data = shield.components.BCD_Interact.ConsoleTag.split(' ');
+						const index = machinesbrs.indexOf(shield);
+						data[4] = Math.max(Number(data[4]) - projstrength, 0);
+						this.omegga.middlePrint(playerstate, '<b>Shield charge: ' + data[4] + '</>');
+						shield.components.BCD_Interact.ConsoleTag = data.join(' ');
+						machinesbrs[index] = shield;
+						return;
+					}
 					mmcnd[2] = Number(mmcnd[2]) - projdamage;
 					if(Number(mmcnd[2]) > 0) {
 						this.omegga.middlePrint(playerstate,'<b>Machine health: ' + mmcnd[2] + '</>');
@@ -627,16 +642,6 @@ class Base_wars {
 						let invn = await this.store.get(powner.id);
 						invn.money += Math.floor((Number(mmcnd[3]) + storedmoney) * 0.8);
 						this.store.set(powner.id, invn);
-					}
-					let pname = '';
-					if(mmcnd.includes('Printer')) {
-						pname = mmcnd.splice(6,mmcnd.length - 6).join(' ');
-					}
-					else {
-						pname = mmcnd.splice(5,mmcnd.length - 5).join(' ');
-					}
-					if(mmcnd.includes('Manual')) {
-						pname = mmcnd.splice(4,mmcnd.length - 4).join(' ');
 					}
 					if(online.includes(pname)) {
 						this.omegga.whisper(pname, clr.red + '<b>One of your machines has been destroyed!</>');
@@ -1124,9 +1129,9 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Fixed slot 1 being duplicated into the 4th slot when there is no specials equiped.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Fixed displaying non brs files when loading maps.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Fixed EMF grenade not geting removed when used.</>");
+			this.omegga.whisper(name, clr.orn + "<b>EMF grenade now lasts for half a minute.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Health potions are now specials. They will nolonger takeup a slot for weapons.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Shields will nolonger protect machines from a different player unless they are trusted.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
 		.on('cmd:placecore', async name => {
@@ -1588,7 +1593,12 @@ class Base_wars {
 					player.takeItem(weapons['impulse grenade']);
 					inv.selected[slot - 1] = weapon;
 					if(enablechecker && weapon !== 'none') {
-						player.giveItem(weapons['impulse grenade']);
+						if(invn.selected[2] === 'health potion') {
+							ply.giveItem(weapons['health potion']);
+						}
+						else {
+							ply.giveItem(weapons['impulse grenade']);
+						}
 					}
 					this.store.set(player.id,inv);
 					this.omegga.whisper(name,'<b>Special slot has been set to '+clr.red+weapon+'</color>.</>');
@@ -1703,7 +1713,12 @@ class Base_wars {
 					ply.giveItem(weapons[invn.selected[1]]);
 					ply.giveItem(weapons['rocket jumper']);
 					if(invn.selected[2] !== 'none') {
-						ply.giveItem(weapons['impulse grenade']);
+						if(invn.selected[2] === 'health potion') {
+							ply.giveItem(weapons['health potion']);
+						}
+						else {
+							ply.giveItem(weapons['impulse grenade']);
+						}
 					}
 				}
 			}
