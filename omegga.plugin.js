@@ -1159,11 +1159,11 @@ class Base_wars {
 				const keys = await this.store.keys();
 				let mlist = [];
 				for(var k in keys) {
-					const player = await this.omegga.getPlayer(keys[k]);
-					if(player != null) {
-						const stats = await this.store.get(keys[k]);
+					const stats = await this.store.get(keys[k]);
+					const ky = Object.keys(stats);
+					if(ky.includes("name")) {
 						const money = stats.money;
-						mlist.push({p: player.name, m: money});
+						mlist.push({p: stats.name, m: money});
 					}
 				}
 				mlist.sort(function(a,b) {
@@ -1178,11 +1178,11 @@ class Base_wars {
 				const keys = await this.store.keys();
 				let mlist = [];
 				for(var k in keys) {
-					const player = await this.omegga.getPlayer(keys[k]);
-					if(player != null) {
-						const stats = await this.store.get(keys[k]);
+					const stats = await this.store.get(keys[k]);
+					const ky = Object.keys(stats);
+					if(ky.includes("name")) {
 						const stat = stats.stats[0];
-						mlist.push({p: player.name, m: stat});
+						mlist.push({p: stats.name, m: stat});
 					}
 				}
 				mlist.sort(function(a,b) {
@@ -1487,7 +1487,7 @@ class Base_wars {
 		.on('join', async player => {
 			const keys = await this.store.keys();
 			if(!keys.includes(player.id)) {
-				this.store.set(player.id,{inv: ['pistol','impact grenade'], money: 0, base: [], selected: ['pistol','impact grenade','none'], machines: [], charm: [], stats: [0]});
+				this.store.set(player.id,{inv: ['pistol','impact grenade'], money: 0, base: [], selected: ['pistol','impact grenade','none'], machines: [], charm: [], stats: [0], name: player.name});
 				this.omegga.whisper(player.name,clr.grn+'<b>You\'re new so you recieved basic guns. Please use /basewars for basic info.</>')
 			}
 			let invn = await this.store.get(player.id);
@@ -1495,6 +1495,10 @@ class Base_wars {
 			const invk = Object.keys(invn);
 			if(!invk.includes('stats')) {
 				invn.stats = [0];
+				this.store.set(player.id, invn);
+			}
+			if(!invk.includes('name')) {
+				invn.name = player.name;
 				this.store.set(player.id, invn);
 			}
 			if(!keys.includes("Trusted")){
