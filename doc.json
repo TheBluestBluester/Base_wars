@@ -42,6 +42,11 @@
       "description": "Maximum brickcount a player can have before getting taxed.",
       "default": 5000,
       "type": "number"
+    },
+    "Permadestruct": {
+      "description": "Should the bricks reload at the end of the fight round or not.",
+      "default": false,
+      "type": "boolean"
     }
   },
   "commands": [

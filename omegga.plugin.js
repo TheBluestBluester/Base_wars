@@ -64,6 +64,7 @@ let enablechecker = false;
 let time = 10;
 let XYBoundry = 30000;
 let ZBoundry = 9000;
+let permadestruct = false;
 
 let maxtraderheight = 9000;
 let traderinrange = [];
@@ -71,6 +72,7 @@ let traderinrange = [];
 let finished = true;
 
 let publicbricks = [];
+let backup = []
 
 let totax = [];
 let minbrickcount = 5000;
@@ -111,6 +113,7 @@ class Base_wars {
 		ZBoundry = this.config.ZBoundry;
 		maxtraderheight = this.config.MaxTraderHeight;
 		minbrickcount = this.config.ImmuneBrickCount;
+		permadestruct = this.config.Permadestruct;
 	}
 	async CheckProjectiles(enabled) {
 		if(!enabled) { return; }
@@ -352,7 +355,7 @@ class Base_wars {
 						this.omegga.whisper(player.name, clr.ylw + '<b>' + weapon.special + ' $' + clr.dgrn + weapon.price + '</>');
 					}
 				}
-				//this.omegga.whisper(player.name,'<b>'+clr.ylw+tradingstation.offers.join('</>, \n<oSet.Begin(WScript.ScriptBaseName, 0x1 /*POB_READ*/);>' + clr.ylw) + '</>');
+				//this.omegga.whisper(player.name,'<b>'+clr.ylw+tradingstation.offers.join('</>, \n<o>);>' + clr.ylw) + '</>');
 			}
 			if(dist >= 100 && traderinrange.includes(player.name)) {
 				traderinrange.splice(traderinrange.indexOf(player.name), 1);
@@ -580,14 +583,16 @@ class Base_wars {
 					moneybrick.position = [Math.floor(Number(pos.x)),Math.floor(Number(pos.y)),Math.floor(Number(pos.z))];
 					let mmcnd = moneymcn.components.BCD_Interact.ConsoleTag.split(' ');
 					let pname = '';
+					// I HAAAATE JAVASCRIPT
+					const mmcnd2 = JSON.parse(JSON.stringify(mmcnd));
 					if(mmcnd.includes('Printer')) {
-						pname = mmcnd.splice(6,mmcnd.length - 6).join(' ');
+						pname = mmcnd2.splice(6,mmcnd.length - 6).join(' ');
 					}
 					else {
-						pname = mmcnd.splice(5,mmcnd.length - 5).join(' ');
+						pname = mmcnd2.splice(5,mmcnd.length - 5).join(' ');
 					}
 					if(mmcnd.includes('Manual')) {
-						pname = mmcnd.splice(4,mmcnd.length - 4).join(' ');
+						pname = mmcnd2.splice(4,mmcnd.length - 4).join(' ');
 					}
 					for(var sld in shields) {
 						const smcn = shields[sld];
@@ -600,8 +605,8 @@ class Base_wars {
 						(brc.p[2] - smcn.position[2]) * (brc.p[2] - smcn.position[2])
 						);
 						if(dist < Number(data[5]) * 10 && Number(data[4]) > 0) {
-							const tlist = trust.filter(t => t.player === townr && t.trusts === pname);
-							if(tlist.length > 0 || townr === pname) {
+							const tlist = trust.filter(t => t.player == townr && t.trusts == pname);
+							if(tlist.length > 0 || townr == pname) {
 								inrange.push(smcn);
 							}
 						}
@@ -640,6 +645,9 @@ class Base_wars {
 						this.omegga.middlePrint(playerstate,clr.ylw + '<b>$' + clr.dgrn + Math.floor((Number(mmcnd[3]) + storedmoney) * 0.8) + '</>');
 						const powner = await this.omegga.getPlayer(playerstate);
 						let invn = await this.store.get(powner.id);
+						if(powner.name != pname && pname != '') {
+							invn.stats[0]++;
+						}
 						invn.money += Math.floor((Number(mmcnd[3]) + storedmoney) * 0.8);
 						this.store.set(powner.id, invn);
 					}
@@ -762,6 +770,19 @@ class Base_wars {
 		}
 	}
 	
+	async backupbricks(brs) {
+		const owners = brs.brick_owners;
+		let addbrick = [];
+		for(var b in brs.bricks) {
+			const brick = brs.bricks[b];
+			const ownerindex = brick.owner_index - 1;
+			if(owners[ownerindex].name !== "MCN" && owners[ownerindex].name !== "TradingStation" && owners[ownerindex].name !== "BaseCore" && owners[ownerindex].name !== "PUBLIC") {
+				addbrick.push(brick);
+			}
+		}
+		backup = {...brs, bricks: addbrick};
+	}
+	
 	async modetoggle(name) {
 		finished = false;
 		enablechecker = !enablechecker;
@@ -778,7 +799,6 @@ class Base_wars {
 		}
 		let brs = await this.omegga.getSaveData();
 		if(brs == null) {return;}
-		//let startTime = new Date();
 		let bricjowners = brs.brick_owners.filter(owner => online.includes(owner.name));
 		let cores = new Array();
 		let machinebricks = new Array();
@@ -803,13 +823,10 @@ class Base_wars {
 			
 			machinesbrs = machinebricks;
 			basecores = cores;
-			
-			//let endTime = new Date();
-			//let finalTime = (endTime - startTime) / 1000;
-			//this.omegga.broadcast("Took: " + finalTime + " seconds.");
 			this.omegga.broadcast("<size=\"50\"><b>Fight!</>");
 			this.omegga.broadcast("<b>You have " + fighttime + " minutes of fight time.</>");
 			this.preparetax(bricjowners);
+			setTimeout(() => this.backupbricks(brs), 5000);
 			time = fighttime;
 		}
 		else {
@@ -825,6 +842,9 @@ class Base_wars {
 			}
 			this.omegga.broadcast("<size=\"50\"><b>Build!</>");
 			this.omegga.broadcast("<b>You have " + buildtime + " minutes of build time.</>");
+			if(!permadestruct) {
+				this.omegga.loadSaveData(backup, {quiet: true});
+			}
 			time = buildtime;
 		}
 		this.announcetradingstation();
@@ -1129,10 +1149,50 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>EMF grenade now lasts for half a minute.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Health potions are now specials. They will nolonger takeup a slot for weapons.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Shields will nolonger protect machines from a different player unless they are trusted.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Destroyed bricks will reload when the fight round ends. Machines will remain destroyed. This can be toggled in configs.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Added /stats command. /stats displays top 10 of players on a category. ATM you the categories are: money and destroyed.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Fixed warning messsage that appears when your machines get destroyed not appearing.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
+		})
+		.on('cmd:stats', async (name, ...args) => {
+			if(args[0] === 'money') {
+				const keys = await this.store.keys();
+				let mlist = [];
+				for(var k in keys) {
+					const player = await this.omegga.getPlayer(keys[k]);
+					if(player != null) {
+						const stats = await this.store.get(keys[k]);
+						const money = stats.money;
+						mlist.push({p: player.name, m: money});
+					}
+				}
+				mlist.sort(function(a,b) {
+					return a.m - b.m;
+				});
+				for(var st=0;st<10&&st<mlist.length;st++) {
+					const stat = mlist[st];
+					this.omegga.whisper(name, '<b>' + clr.orn + (st + 1) + '</> ' + stat.p + ': ' + clr.ylw + '$' + clr.dgrn + stat.m + '</>');
+				}
+			}
+			if(args[0] === 'destroyed') {
+				const keys = await this.store.keys();
+				let mlist = [];
+				for(var k in keys) {
+					const player = await this.omegga.getPlayer(keys[k]);
+					if(player != null) {
+						const stats = await this.store.get(keys[k]);
+						const stat = stats.stats[0];
+						mlist.push({p: player.name, m: stat});
+					}
+				}
+				mlist.sort(function(a,b) {
+					return a.m - b.m;
+				});
+				for(var st=0;st<10&&st<mlist.length;st++) {
+					const stat = mlist[st];
+					this.omegga.whisper(name, '<b>' + clr.orn + (st + 1) + '</> ' + stat.p + ': ' + clr.red + stat.m + ' machines</>');
+				}
+			}
 		})
 		.on('cmd:placecore', async name => {
 			const player = await this.omegga.getPlayer(name);
@@ -1427,16 +1487,16 @@ class Base_wars {
 		.on('join', async player => {
 			const keys = await this.store.keys();
 			if(!keys.includes(player.id)) {
-				this.store.set(player.id,{inv: ['pistol','impact grenade'], money: 0, base: [], selected: ['pistol','impact grenade','none'], machines: [], charm: []});
+				this.store.set(player.id,{inv: ['pistol','impact grenade'], money: 0, base: [], selected: ['pistol','impact grenade','none'], machines: [], charm: [], stats: [0]});
 				this.omegga.whisper(player.name,clr.grn+'<b>You\'re new so you recieved basic guns. Please use /basewars for basic info.</>')
 			}
 			let invn = await this.store.get(player.id);
-			if(invn.charm === '') {
-				invn.charm = [];
-				invn.selected.push('none');
-				this.store.set(player.id,invn);
-			}
 			online.push(player.name);
+			const invk = Object.keys(invn);
+			if(!invk.includes('stats')) {
+				invn.stats = [0];
+				this.store.set(player.id, invn);
+			}
 			if(!keys.includes("Trusted")){
 				this.store.set("Trusted",[]);
 			}
@@ -1618,12 +1678,12 @@ class Base_wars {
 			switch(arg) {
 				default:
 					this.omegga.whisper(name, '<b>' + clr.grn + '/basewars</color> you are here.</>');
-					this.omegga.whisper(name, '<b>' + clr.grn + '/basewars how to play</color> basics to Base wars.</>');
+					this.omegga.whisper(name, '<b>' + clr.grn + '/basewars the basics</color> basics to Base wars.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/basewars commands</color> commands for Base wars.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/basewars machines</color> info about machines in Base wars.</>');
 					break;
-				case 'how to play':
-					this.omegga.whisper(name, '<size="30"><b>How to play.</>');
+				case 'the basics':
+					this.omegga.whisper(name, '<size="30"><b>The basics.</>');
 					this.omegga.whisper(name, '<b>Welcome to Base wars! Where you build and destroy basses, if you are not aware already.</>');
 					this.omegga.whisper(name, '<b>Each couple of minutes the modes get switched to fight mode and build mode.</>');
 					this.omegga.whisper(name, '<b>Your goal is to build and defend machines which generate money. You can destroy other people\'s machines for money. With money you can buy more machines and better weapons to kill and destroy.</>');
@@ -1646,6 +1706,7 @@ class Base_wars {
 					this.omegga.whisper(name, '<b>' + clr.grn + '/pay (money) (player)</color> gives a player money.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/skip</color> vote to skip the round.</>');
 					this.omegga.whisper(name, '<b>' + clr.grn + '/trust (add/remove/nothing) (player name) </color> gives/removes/views trust. Trusted users will not be damaged by your turrets and will be able to set spawn within your base core.</>');
+					this.omegga.whisper(name, '<b>' + clr.grn + '/stats (money) </color> displays top 10 players on a category.</>');
 					break;
 				case 'machines':
 					this.omegga.whisper(name, '<size="30"><b>Machines.</>');
@@ -1693,7 +1754,7 @@ class Base_wars {
 		this.loadmapbricks();
 		ProjectileCheckInterval = setInterval(() => this.CheckProjectiles(enablechecker && online.length > 0),delay);
 		skipnturretinterval = setInterval(() => this.skipdecrementnturrets(),2000);
-		return { registeredCommands: ['wipeall','loadout','viewinv','setspawn','clearspawn','place','buy','listshop','basewars','refund','pay','changelog','placecore','removecore','skip','trust'] };
+		return { registeredCommands: ['wipeall','loadout','viewinv','setspawn','clearspawn','place','buy','listshop','basewars','refund','pay','changelog','placecore','removecore','skip','trust','stats'] };
 	}
 	async pluginEvent(event, from, ...args) {
 		if(event === 'spawn') {
