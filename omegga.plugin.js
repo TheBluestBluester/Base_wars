@@ -1167,7 +1167,7 @@ class Base_wars {
 					}
 				}
 				mlist.sort(function(a,b) {
-					return a.m - b.m;
+					return b.m - a.m;
 				});
 				for(var st=0;st<10&&st<mlist.length;st++) {
 					const stat = mlist[st];
@@ -1186,7 +1186,7 @@ class Base_wars {
 					}
 				}
 				mlist.sort(function(a,b) {
-					return a.m - b.m;
+					return b.m - a.m;
 				});
 				for(var st=0;st<10&&st<mlist.length;st++) {
 					const stat = mlist[st];
