@@ -1617,7 +1617,7 @@ class Base_wars {
 			}
 		})
 		.on('cmd:loadout', async (name, ...args) => {
-			try {
+			//try {
 			const haskey = await this.store.keys();
 			const player = await this.omegga.getPlayer(name);
 			if(haskey.includes(player.id)) {
@@ -1657,11 +1657,11 @@ class Base_wars {
 					player.takeItem(weapons['impulse grenade']);
 					inv.selected[slot - 1] = weapon;
 					if(enablechecker && weapon !== 'none') {
-						if(invn.selected[2] === 'health potion') {
-							ply.giveItem(weapons['health potion']);
+						if(inv.selected[2] === 'health potion') {
+							player.giveItem(weapons['health potion']);
 						}
 						else {
-							ply.giveItem(weapons['impulse grenade']);
+							player.giveItem(weapons['impulse grenade']);
 						}
 					}
 					this.store.set(player.id,inv);
@@ -1671,9 +1671,9 @@ class Base_wars {
 					this.omegga.whisper(name, clr.red+'<b>You don\'t have that weapon.</>')
 				}
 			}
-			}
-			catch (e){
-			}
+			//}
+			//catch (e){
+			//}
 		})
 		.on('cmd:basewars', async (name, ...args) => {
 			try {
