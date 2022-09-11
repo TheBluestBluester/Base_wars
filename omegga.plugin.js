@@ -570,57 +570,60 @@ class Base_wars {
 				return;
 			}
 			brc.s = [Math.max(brc.s[0],projradius),Math.max(brc.s[1],projradius),Math.max(brc.s[2],projradius)];
-			let moneymcn = 0;
+			let moneymcn = machinesbrs.filter(mcn => mcn.position[0] === brc.p[0] && mcn.position[1] === brc.p[1] && mcn.position[2] === brc.p[2]);
 			let isdamaged = true;
+			let pname = '';
+			let mmcnd = 0;
+			if(moneymcn.length > 0) {
+				moneymcn = moneymcn[0];
+				mmcnd = moneymcn.components.BCD_Interact.ConsoleTag.split(' ');
+				// I HAAAATE JAVASCRIPT
+				const mmcnd2 = JSON.parse(JSON.stringify(mmcnd));
+				if(mmcnd.includes('Printer') || mmcnd.includes('Sld')) {
+					pname = mmcnd2.splice(6,mmcnd.length - 6).join(' ');
+				}
+				else {
+					pname = mmcnd2.splice(5,mmcnd.length - 5).join(' ');
+				}
+				if(mmcnd.includes('Manual')) {
+					pname = mmcnd2.splice(4,mmcnd.length - 4).join(' ');
+				}
+			}
 			const shields = machinesbrs.filter(smcn => smcn.components.BCD_Interact.ConsoleTag.indexOf('Sld') !== -1);
+			const trust = await this.store.get("Trusted");
 			const inrange = [];
 			let prevdist = 100000;
-			const trust = await this.store.get("Trusted");
-			for(var mcn in machinesbrs) {
-				if(machinesbrs[mcn].position[0] === brc.p[0] && machinesbrs[mcn].position[1] === brc.p[1] && machinesbrs[mcn].position[2] === brc.p[2]) {
-					moneymcn = machinesbrs[mcn];
-					let moneybrick = moneybrs.bricks[0];
-					moneybrick.position = [Math.floor(Number(pos.x)),Math.floor(Number(pos.y)),Math.floor(Number(pos.z))];
-					let mmcnd = moneymcn.components.BCD_Interact.ConsoleTag.split(' ');
-					let pname = '';
-					// I HAAAATE JAVASCRIPT
-					const mmcnd2 = JSON.parse(JSON.stringify(mmcnd));
-					if(mmcnd.includes('Printer')) {
-						pname = mmcnd2.splice(6,mmcnd.length - 6).join(' ');
+			for(var sld in shields) {
+				const smcn = shields[sld];
+				const data = smcn.components.BCD_Interact.ConsoleTag.split(' ');
+				const townr = data.splice(6,data.length - 6).join(' ');
+				const dist = Math.sqrt(
+				(brc.p[0] - smcn.position[0]) * (brc.p[0] - smcn.position[0]) +
+				(brc.p[1] - smcn.position[1]) * (brc.p[1] - smcn.position[1]) +
+				(brc.p[2] - smcn.position[2]) * (brc.p[2] - smcn.position[2])
+				);
+				if(dist < Number(data[5]) * 10 && Number(data[4]) > 0) {
+					const tlist = trust.filter(t => t.player == townr && (t.trusts == pname || t.trusts == brc.o.name));
+					if(tlist.length > 0 || townr == pname || townr == brc.o.name) {
+						inrange.push(smcn);
 					}
-					else {
-						pname = mmcnd2.splice(5,mmcnd.length - 5).join(' ');
-					}
-					if(mmcnd.includes('Manual')) {
-						pname = mmcnd2.splice(4,mmcnd.length - 4).join(' ');
-					}
-					for(var sld in shields) {
-						const smcn = shields[sld];
-						const data = smcn.components.BCD_Interact.ConsoleTag.split(' ');
-						const townr = data.splice(6,data.length - 6).join(' ');
-						//console.log(townr);
-						const dist = Math.sqrt(
-						(brc.p[0] - smcn.position[0]) * (brc.p[0] - smcn.position[0]) +
-						(brc.p[1] - smcn.position[1]) * (brc.p[1] - smcn.position[1]) +
-						(brc.p[2] - smcn.position[2]) * (brc.p[2] - smcn.position[2])
-						);
-						if(dist < Number(data[5]) * 10 && Number(data[4]) > 0) {
-							const tlist = trust.filter(t => t.player == townr && t.trusts == pname);
-							if(tlist.length > 0 || townr == pname) {
-								inrange.push(smcn);
-							}
-						}
-					}
-					if(inrange.length > 0) {
-						const shield = inrange[0];
-						let data = shield.components.BCD_Interact.ConsoleTag.split(' ');
-						const index = machinesbrs.indexOf(shield);
-						data[4] = Math.max(Number(data[4]) - projstrength, 0);
-						this.omegga.middlePrint(playerstate, '<b>Shield charge: ' + data[4] + '</>');
-						shield.components.BCD_Interact.ConsoleTag = data.join(' ');
-						machinesbrs[index] = shield;
-						return;
-					}
+				}
+			}
+			if(inrange.length > 0) {
+				const shield = inrange[0];
+				let data = shield.components.BCD_Interact.ConsoleTag.split(' ');
+				const index = machinesbrs.indexOf(shield);
+				data[4] = Math.max(Number(data[4]) - projstrength, 0);
+				this.omegga.middlePrint(playerstate, '<b>Shield charge: ' + data[4] + '</>');
+				shield.components.BCD_Interact.ConsoleTag = data.join(' ');
+				machinesbrs[index] = shield;
+				return;
+			}
+			//for(var mcn in machinesbrs) {
+				if(mmcnd != 0) {
+					const mcn = machinesbrs.indexOf(moneymcn);
+					//let moneybrick = moneybrs.bricks[0];
+					//moneybrick.position = [Math.floor(Number(pos.x)),Math.floor(Number(pos.y)),Math.floor(Number(pos.z))];
 					mmcnd[2] = Number(mmcnd[2]) - projdamage;
 					if(Number(mmcnd[2]) > 0) {
 						this.omegga.middlePrint(playerstate,'<b>Machine health: ' + mmcnd[2] + '</>');
@@ -638,18 +641,18 @@ class Base_wars {
 							}
 						}
 						let storedmoney = 0;
-						if(store != 0) {
-							storedmoney = store.money;
-							printerstore.splice(printerstore.indexOf(store),1);
-						}
-						this.omegga.middlePrint(playerstate,clr.ylw + '<b>$' + clr.dgrn + Math.floor((Number(mmcnd[3]) + storedmoney) * 0.8) + '</>');
 						const powner = await this.omegga.getPlayer(playerstate);
-						let invn = await this.store.get(powner.id);
 						if(powner.name != pname && pname != '') {
+							if(store != 0) {
+								storedmoney = store.money;
+								printerstore.splice(printerstore.indexOf(store),1);
+							}
+							this.omegga.middlePrint(playerstate,clr.ylw + '<b>$' + clr.dgrn + Math.floor((Number(mmcnd[3]) + storedmoney) * 0.8) + '</>');
+							let invn = await this.store.get(powner.id);
 							invn.stats[0]++;
+							invn.money += Math.floor((Number(mmcnd[3]) + storedmoney) * 0.8);
+							this.store.set(powner.id, invn);
 						}
-						invn.money += Math.floor((Number(mmcnd[3]) + storedmoney) * 0.8);
-						this.store.set(powner.id, invn);
 					}
 					if(online.includes(pname)) {
 						this.omegga.whisper(pname, clr.red + '<b>One of your machines has been destroyed!</>');
@@ -657,7 +660,7 @@ class Base_wars {
 					machinesbrs.splice(mcn,1);
 					}
 				}
-			}
+			//}
 			if(isdamaged) {
 				// This was done because omegga thinks that machines are not players.
 				this.omegga.writeln('Bricks.ClearRegion ' + brc.p.join(' ') + ' ' + brc.s.join(' ') + ' ' + brc.o.id);
@@ -842,7 +845,7 @@ class Base_wars {
 			}
 			this.omegga.broadcast("<size=\"50\"><b>Build!</>");
 			this.omegga.broadcast("<b>You have " + buildtime + " minutes of build time.</>");
-			if(!permadestruct) {
+			if(!permadestruct && backup.bricks.length > 0) {
 				this.omegga.loadSaveData(backup, {quiet: true});
 			}
 			time = buildtime;
@@ -894,13 +897,52 @@ class Base_wars {
 			const specials = inv.charm;
 			const loadout = inv.selected;
 			this.omegga.whisper(name, "<b>Your inventory --------------" + clr.end);
-			this.omegga.whisper(name,'<b>' + clr.ylw + inventory.join('</color>,</>\n<b>' + clr.ylw) + '</>');
+			let used = [];
+			for(var m in inventory) {
+				const weapon = inventory[m];
+				if(!used.includes(weapon)) {
+					const similar = inventory.filter(mcn => mcn == weapon);
+					if(similar.length == 1) {
+						this.omegga.whisper(name,'<b>' + clr.ylw + weapon + '</>');
+					}
+					else {
+						this.omegga.whisper(name,'<b>' + clr.ylw + weapon + '</> (x' + similar.length + ')</>');
+					}
+					used.push(weapon);
+				}
+			}
 			this.omegga.whisper(name,"<b>Money: " + clr.ylw + '$'  + clr.dgrn + inv.money + clr.end);
 			this.omegga.whisper(name, "<b>" + clr.slv +"Current loadout: "  + clr.orn + '<b>' + loadout.join(', ') + clr.end);
 			this.omegga.whisper(name,"<b>Machines:" + clr.end);
-			this.omegga.whisper(name,'<b>' + clr.dgrn + machines.join('</color>,</>\n<b>' + clr.dgrn) + '</>');
+			used = [];
+			for(var m in machines) {
+				const machine = machines[m];
+				if(!used.includes(machine)) {
+					const similar = machines.filter(mcn => mcn == machine);
+					if(similar.length == 1) {
+						this.omegga.whisper(name,'<b>' + clr.dgrn + machine + '</>');
+					}
+					else {
+						this.omegga.whisper(name,'<b>' + clr.dgrn + machine + '</> (x' + similar.length + ')</>');
+					}
+					used.push(machine);
+				}
+			}
 			this.omegga.whisper(name,"<b>Specials:" + clr.end);
-			this.omegga.whisper(name,'<b>' + clr.red + specials.join('</color>,</>\n<b>' + clr.red) + '</>');
+			used = [];
+			for(var m in specials) {
+				const special = specials[m];
+				if(!used.includes(special)) {
+					const similar = specials.filter(mcn => mcn == special);
+					if(similar.length == 1) {
+						this.omegga.whisper(name,'<b>' + clr.red + special + '</>');
+					}
+					else {
+						this.omegga.whisper(name,'<b>' + clr.red + special + '</> (x' + similar.length + ')</>');
+					}
+					used.push(special);
+				}
+			}
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		}
 	}
@@ -1149,9 +1191,9 @@ class Base_wars {
 		})
 		.on('cmd:changelog', async name => {
 			this.omegga.whisper(name, clr.ylw + "<size=\"30\"><b>--ChangeLog--</>");
-			this.omegga.whisper(name, clr.orn + "<b>Destroyed bricks will reload when the fight round ends. Machines will remain destroyed. This can be toggled in configs.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Added /stats command. /stats displays top 10 of players on a category. ATM you the categories are: money and destroyed.</>");
-			this.omegga.whisper(name, clr.orn + "<b>Fixed warning messsage that appears when your machines get destroyed not appearing.</>");
+			this.omegga.whisper(name, clr.orn + "<b>Fixed shields not obsorbing damage when bricks next to them are hit.</>");
+			this.omegga.whisper(name, clr.orn + "<b>/stats command now displays your current position on the leaderboard.</>");
+			this.omegga.whisper(name, clr.orn + "<b>/viewinv will now display multiple items as one with a coune next to it instead of displaying all items individualy.</>");
 			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
 		.on('cmd:stats', async (name, ...args) => {
@@ -1173,6 +1215,8 @@ class Base_wars {
 					const stat = mlist[st];
 					this.omegga.whisper(name, '<b>' + clr.orn + (st + 1) + '</> ' + stat.p + ': ' + clr.ylw + '$' + clr.dgrn + stat.m + '</>');
 				}
+				const pos = mlist.indexOf(mlist.filter(st => st.p == name)[0]);
+				this.omegga.whisper(name, '<b>Your current position is: ' + clr.orn + '#' + (pos + 1) + '</>');
 			}
 			if(args[0] === 'destroyed') {
 				const keys = await this.store.keys();
@@ -1192,7 +1236,10 @@ class Base_wars {
 					const stat = mlist[st];
 					this.omegga.whisper(name, '<b>' + clr.orn + (st + 1) + '</> ' + stat.p + ': ' + clr.red + stat.m + ' machines</>');
 				}
+				const pos = mlist.indexOf(mlist.filter(st => st.p == name)[0]);
+				this.omegga.whisper(name, '<b>Your current position is: ' + clr.orn + '#' + (pos + 1) + '</>');
 			}
+			this.omegga.whisper(name, clr.ylw + "<b>PGup n PGdn to scroll." + clr.end);
 		})
 		.on('cmd:placecore', async name => {
 			const player = await this.omegga.getPlayer(name);
